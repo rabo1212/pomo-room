@@ -15,9 +15,7 @@ function debouncedSync() {
   syncTimeout = setTimeout(() => {
     getSupabase().auth.getUser().then(({ data: { user } }) => {
       if (user) {
-        syncRoomToCloud(user.id).catch((err: unknown) => {
-          console.warn('[sync] room sync failed:', err);
-        });
+        syncRoomToCloud(user.id).catch(() => {});
       }
     });
   }, 2000);

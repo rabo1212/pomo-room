@@ -154,6 +154,7 @@ export default function SocialModal({ onClose }: SocialModalProps) {
                   </div>
                   <button
                     onClick={handleTogglePublic}
+                    aria-label={isRoomPublic ? '방 비공개로 전환' : '방 공개로 전환'}
                     className={`w-12 h-6 rounded-full transition-colors relative ${
                       isRoomPublic ? 'bg-mint' : 'bg-cream-dark/40'
                     }`}
@@ -171,10 +172,10 @@ export default function SocialModal({ onClose }: SocialModalProps) {
                   <p className="text-sm">방 불러오는 중...</p>
                 </div>
               ) : rooms.length === 0 ? (
-                <div className="text-center py-12 text-lavender-dark/50">
-                  <div className="text-3xl mb-2">🏚️</div>
-                  <p className="text-sm">아직 공개된 방이 없어요</p>
-                  <p className="text-xs mt-1">첫 번째로 방을 공개해보세요!</p>
+                <div className="text-center py-12">
+                  <div className="text-4xl mb-3">🏚️</div>
+                  <p className="text-sm font-semibold text-lavender-dark">아직 공개된 방이 없어요</p>
+                  <p className="text-xs text-lavender-dark/60 mt-1">첫 번째로 방을 공개해보세요!</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -221,10 +222,10 @@ export default function SocialModal({ onClose }: SocialModalProps) {
                   <p className="text-sm">순위 불러오는 중...</p>
                 </div>
               ) : leaderboard.length === 0 ? (
-                <div className="text-center py-12 text-lavender-dark/50">
-                  <div className="text-3xl mb-2">🏆</div>
-                  <p className="text-sm">아직 기록이 없어요</p>
-                  <p className="text-xs mt-1">뽀모도로를 완료하고 순위에 올라보세요!</p>
+                <div className="text-center py-12">
+                  <div className="text-4xl mb-3">🏆</div>
+                  <p className="text-sm font-semibold text-lavender-dark">아직 기록이 없어요</p>
+                  <p className="text-xs text-lavender-dark/60 mt-1">뽀모도로를 완료하고 순위에 올라보세요!</p>
                 </div>
               ) : (
                 <div className="space-y-2">

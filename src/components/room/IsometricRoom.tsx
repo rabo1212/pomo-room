@@ -3,7 +3,7 @@
 import { useTimerStore } from '@/stores/timerStore';
 import { useRoomStore } from '@/stores/roomStore';
 import { THEME_COLORS } from '@/lib/constants';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { memo, useEffect, useState, useRef, useCallback } from 'react';
 import { RoomTheme } from '@/types';
 
 /*
@@ -222,7 +222,7 @@ function renderRug(pos: [number, number]) {
   return <ellipse cx={pos[0]} cy={pos[1]} rx="62" ry="28" fill="#B8A9C9" opacity="0.3" />;
 }
 
-export default function IsometricRoom() {
+export default memo(function IsometricRoom() {
   const svgRef = useRef<SVGSVGElement>(null);
   const status = useTimerStore((s) => s.status);
   const activeItemIds = useRoomStore((s) => s.activeItemIds);
@@ -686,4 +686,4 @@ export default function IsometricRoom() {
       </svg>
     </div>
   );
-}
+});

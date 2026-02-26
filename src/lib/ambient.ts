@@ -5,6 +5,14 @@
 
 type AmbientType = 'rain' | 'cafe' | 'forest' | 'none';
 
+// 오디오 파라미터 상수
+const MASTER_VOLUME = 0.3;
+const NOISE_BUFFER_SEC = 4;
+
+const RAIN = { LPF: 800, LPF_Q: 0.5, HPF: 200, GAIN: 0.6, DRIP_FREQ: 2500, DRIP_Q: 2, DRIP_GAIN: 0.15 } as const;
+const CAFE = { LPF: 3000, HPF: 100, GAIN: 0.35, HUM_FREQ: 120, HUM_GAIN: 0.03 } as const;
+const FOREST = { WIND_LPF: 600, WIND_GAIN: 0.4, BIRD_GAIN: 0.08, BIRD_BASE: 2000, BIRD_RANGE: 2000, CHIRP_MIN: 2000, CHIRP_RANGE: 5000, CHIRP_INITIAL: 1000 } as const;
+
 let ctx: AudioContext | null = null;
 let masterGain: GainNode | null = null;
 let activeNodes: AudioNode[] = [];
@@ -15,7 +23,7 @@ function getCtx(): AudioContext {
   if (!ctx) {
     ctx = new AudioContext();
     masterGain = ctx.createGain();
-    masterGain.gain.value = 0.3;
+    masterGain.gain.value = MASTER_VOLUME;
     masterGain.connect(ctx.destination);
   }
   if (ctx.state === 'suspended') ctx.resume();
@@ -30,7 +38,6 @@ function getMasterGain(): GainNode {
 /** 타이머 등록 (정리 추적용) */
 function scheduleTimer(fn: () => void, delay: number) {
   const id = setTimeout(() => {
-    // 실행 후 목록에서 제거
     activeTimers = activeTimers.filter(t => t !== id);
     fn();
   }, delay);
@@ -52,37 +59,36 @@ function createNoiseBuffer(audioCtx: AudioContext, seconds: number): AudioBuffer
 /** 비 소리: 필터링된 핑크 노이즈 + 간헐적 방울 */
 function startRain(audioCtx: AudioContext, dest: AudioNode) {
   const noise = audioCtx.createBufferSource();
-  noise.buffer = createNoiseBuffer(audioCtx, 4);
+  noise.buffer = createNoiseBuffer(audioCtx, NOISE_BUFFER_SEC);
   noise.loop = true;
 
   const lpf = audioCtx.createBiquadFilter();
   lpf.type = 'lowpass';
-  lpf.frequency.value = 800;
-  lpf.Q.value = 0.5;
+  lpf.frequency.value = RAIN.LPF;
+  lpf.Q.value = RAIN.LPF_Q;
 
   const hpf = audioCtx.createBiquadFilter();
   hpf.type = 'highpass';
-  hpf.frequency.value = 200;
+  hpf.frequency.value = RAIN.HPF;
 
   const gain = audioCtx.createGain();
-  gain.gain.value = 0.6;
+  gain.gain.value = RAIN.GAIN;
 
   noise.connect(lpf).connect(hpf).connect(gain).connect(dest);
   noise.start();
   activeNodes.push(noise, lpf, hpf, gain);
 
-  // 빗방울 간헐적 소리
   const drip = audioCtx.createBufferSource();
-  drip.buffer = createNoiseBuffer(audioCtx, 4);
+  drip.buffer = createNoiseBuffer(audioCtx, NOISE_BUFFER_SEC);
   drip.loop = true;
 
   const dripFilter = audioCtx.createBiquadFilter();
   dripFilter.type = 'bandpass';
-  dripFilter.frequency.value = 2500;
-  dripFilter.Q.value = 2;
+  dripFilter.frequency.value = RAIN.DRIP_FREQ;
+  dripFilter.Q.value = RAIN.DRIP_Q;
 
   const dripGain = audioCtx.createGain();
-  dripGain.gain.value = 0.15;
+  dripGain.gain.value = RAIN.DRIP_GAIN;
 
   drip.connect(dripFilter).connect(dripGain).connect(dest);
   drip.start();
@@ -92,30 +98,29 @@ function startRain(audioCtx: AudioContext, dest: AudioNode) {
 /** 카페 소리: 넓은 대역 노이즈 + 은은한 잡음 */
 function startCafe(audioCtx: AudioContext, dest: AudioNode) {
   const noise = audioCtx.createBufferSource();
-  noise.buffer = createNoiseBuffer(audioCtx, 4);
+  noise.buffer = createNoiseBuffer(audioCtx, NOISE_BUFFER_SEC);
   noise.loop = true;
 
   const lpf = audioCtx.createBiquadFilter();
   lpf.type = 'lowpass';
-  lpf.frequency.value = 3000;
+  lpf.frequency.value = CAFE.LPF;
 
   const hpf = audioCtx.createBiquadFilter();
   hpf.type = 'highpass';
-  hpf.frequency.value = 100;
+  hpf.frequency.value = CAFE.HPF;
 
   const gain = audioCtx.createGain();
-  gain.gain.value = 0.35;
+  gain.gain.value = CAFE.GAIN;
 
   noise.connect(lpf).connect(hpf).connect(gain).connect(dest);
   noise.start();
   activeNodes.push(noise, lpf, hpf, gain);
 
-  // 저역 험 (에어컨/냉장고 같은 느낌)
   const hum = audioCtx.createOscillator();
   hum.type = 'sine';
-  hum.frequency.value = 120;
+  hum.frequency.value = CAFE.HUM_FREQ;
   const humGain = audioCtx.createGain();
-  humGain.gain.value = 0.03;
+  humGain.gain.value = CAFE.HUM_GAIN;
   hum.connect(humGain).connect(dest);
   hum.start();
   activeNodes.push(hum, humGain);
@@ -123,35 +128,32 @@ function startCafe(audioCtx: AudioContext, dest: AudioNode) {
 
 /** 숲 소리: 바람 노이즈 + 새 지저귐 오실레이터 */
 function startForest(audioCtx: AudioContext, dest: AudioNode) {
-  // 바람 소리
   const wind = audioCtx.createBufferSource();
-  wind.buffer = createNoiseBuffer(audioCtx, 4);
+  wind.buffer = createNoiseBuffer(audioCtx, NOISE_BUFFER_SEC);
   wind.loop = true;
 
   const windLpf = audioCtx.createBiquadFilter();
   windLpf.type = 'lowpass';
-  windLpf.frequency.value = 600;
+  windLpf.frequency.value = FOREST.WIND_LPF;
 
   const windGain = audioCtx.createGain();
-  windGain.gain.value = 0.4;
+  windGain.gain.value = FOREST.WIND_GAIN;
 
   wind.connect(windLpf).connect(windGain).connect(dest);
   wind.start();
   activeNodes.push(wind, windLpf, windGain);
 
-  // 새 소리 (고주파 사인파 트릴)
   const birdGain = audioCtx.createGain();
-  birdGain.gain.value = 0.08;
+  birdGain.gain.value = FOREST.BIRD_GAIN;
   birdGain.connect(dest);
   activeNodes.push(birdGain);
 
-  // 간헐적 새소리
   function chirp() {
     if (currentType !== 'forest') return;
     const a = audioCtx.currentTime;
     const osc = audioCtx.createOscillator();
     osc.type = 'sine';
-    const baseFreq = 2000 + Math.random() * 2000;
+    const baseFreq = FOREST.BIRD_BASE + Math.random() * FOREST.BIRD_RANGE;
     osc.frequency.setValueAtTime(baseFreq, a);
     osc.frequency.linearRampToValueAtTime(baseFreq * 1.3, a + 0.05);
     osc.frequency.linearRampToValueAtTime(baseFreq * 0.9, a + 0.1);
@@ -165,20 +167,18 @@ function startForest(audioCtx: AudioContext, dest: AudioNode) {
     osc.start(a);
     osc.stop(a + 0.15);
 
-    scheduleTimer(chirp, 2000 + Math.random() * 5000);
+    scheduleTimer(chirp, FOREST.CHIRP_MIN + Math.random() * FOREST.CHIRP_RANGE);
   }
-  scheduleTimer(chirp, 1000);
+  scheduleTimer(chirp, FOREST.CHIRP_INITIAL);
 }
 
 /** 현재 재생 중인 사운드 정리 */
 function stopAll() {
-  // 모든 예약된 타이머 정리
   for (const id of activeTimers) {
     clearTimeout(id);
   }
   activeTimers = [];
 
-  // 오디오 노드 정리
   for (const node of activeNodes) {
     try {
       if ('stop' in node && typeof (node as OscillatorNode).stop === 'function') {

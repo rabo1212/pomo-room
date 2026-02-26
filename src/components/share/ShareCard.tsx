@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useStatsStore } from '@/stores/statsStore';
 import { showToast } from '@/components/ui/Toast';
 import { localDateKey } from '@/lib/utils';
@@ -26,6 +26,7 @@ function drawRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: n
 
 export default function ShareCard({ onClose }: ShareCardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [sharing, setSharing] = useState(false);
   const dailyRecords = useStatsStore((s) => s.dailyRecords);
   const today = dailyRecords[localDateKey()] || { count: 0, minutes: 0 };
 
@@ -130,11 +131,13 @@ export default function ShareCard({ onClose }: ShareCardProps) {
   };
 
   const handleShare = async () => {
+    if (sharing) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    setSharing(true);
     canvas.toBlob(async (blob) => {
-      if (!blob) return;
+      if (!blob) { setSharing(false); return; }
       const file = new File([blob], `pomo-room-${localDateKey()}.png`, { type: 'image/png' });
 
       if (navigator.share) {
@@ -150,6 +153,7 @@ export default function ShareCard({ onClose }: ShareCardProps) {
       } else {
         handleDownload();
       }
+      setSharing(false);
     });
   };
 
@@ -173,8 +177,8 @@ export default function ShareCard({ onClose }: ShareCardProps) {
           <button onClick={handleDownload} className="clay-button flex-1 py-3 text-sm text-lavender-dark">
             💾 저장
           </button>
-          <button onClick={handleShare} className="clay-button flex-1 py-3 text-sm font-bold bg-coral text-white">
-            📤 공유
+          <button onClick={handleShare} disabled={sharing} className="clay-button flex-1 py-3 text-sm font-bold bg-coral text-white disabled:opacity-50">
+            {sharing ? '공유 중...' : '📤 공유'}
           </button>
         </div>
       </div>

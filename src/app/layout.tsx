@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fredoka, Nunito } from "next/font/google";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import "./globals.css";
 
 const fredoka = Fredoka({
@@ -65,7 +66,7 @@ export default function RootLayout({
       <body
         className={`${fredoka.variable} ${nunito.variable} antialiased`}
       >
-        {children}
+        <ErrorBoundary>{children}</ErrorBoundary>
       </body>
     </html>
   );

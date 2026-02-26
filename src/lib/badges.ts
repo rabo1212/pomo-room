@@ -95,10 +95,3 @@ export function checkBadges(stats: StatsForBadges): Badge[] {
     earned: def.check(stats),
   }));
 }
-
-/** 새로 획득한 배지 확인 (이전 vs 현재 비교) */
-export function getNewBadges(prevStats: StatsForBadges, newStats: StatsForBadges): Badge[] {
-  const prevBadges = checkBadges(prevStats);
-  const newBadges = checkBadges(newStats);
-  return newBadges.filter((b, i) => b.earned && !prevBadges[i].earned);
-}
