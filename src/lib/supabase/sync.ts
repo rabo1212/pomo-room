@@ -5,13 +5,14 @@ import { useTimerStore } from '@/stores/timerStore';
 import { useRoomStore } from '@/stores/roomStore';
 import { useStatsStore } from '@/stores/statsStore';
 
-const supabase = createClient();
+function getSupabase() { return createClient(); }
 
 // ============================
 // Profile 동기화
 // ============================
 
 export async function fetchProfile(userId: string) {
+  const supabase = getSupabase();
   const { data } = await supabase
     .from('profiles')
     .select('*')
@@ -21,6 +22,7 @@ export async function fetchProfile(userId: string) {
 }
 
 export async function updateProfileCoins(userId: string, coins: number) {
+  const supabase = getSupabase();
   await supabase
     .from('profiles')
     .update({ coins })
@@ -32,6 +34,7 @@ export async function updateProfileCoins(userId: string, coins: number) {
 // ============================
 
 export async function recordSession(userId: string, durationMinutes: number) {
+  const supabase = getSupabase();
   await supabase.from('pomodoro_sessions').insert({
     user_id: userId,
     session_type: 'focus',
@@ -88,6 +91,7 @@ export async function recordSession(userId: string, durationMinutes: number) {
 // ============================
 
 export async function syncRoomToCloud(userId: string) {
+  const supabase = getSupabase();
   const roomState = useRoomStore.getState();
 
   const roomData = {
@@ -115,6 +119,7 @@ export async function syncRoomToCloud(userId: string) {
 }
 
 export async function syncRoomFromCloud(userId: string) {
+  const supabase = getSupabase();
   const { data } = await supabase
     .from('user_rooms')
     .select('*')
@@ -138,6 +143,7 @@ export async function syncRoomFromCloud(userId: string) {
 // ============================
 
 export async function mergeLocalDataToCloud(userId: string) {
+  const supabase = getSupabase();
   // 1. 코인 동기화
   const timerState = useTimerStore.getState();
   const { data: profile } = await supabase

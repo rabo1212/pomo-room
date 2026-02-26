@@ -3,13 +3,14 @@
 import { createClient } from '@/lib/supabase/client';
 import { PublicRoomData, LeaderboardEntry } from '@/types';
 
-const supabase = createClient();
+function getSupabase() { return createClient(); }
 
 // ============================
 // 공개 방 목록
 // ============================
 
 export async function fetchPublicRooms(currentUserId?: string): Promise<PublicRoomData[]> {
+  const supabase = getSupabase();
   // 공개 방이 있는 유저 프로필 + 방 데이터 조회
   const { data: profiles } = await supabase
     .from('profiles')
@@ -62,6 +63,7 @@ export async function fetchPublicRooms(currentUserId?: string): Promise<PublicRo
 // ============================
 
 export async function toggleRoomLike(userId: string, roomOwnerId: string): Promise<boolean> {
+  const supabase = getSupabase();
   // 이미 좋아요했는지 확인
   const { data: existing } = await supabase
     .from('room_likes')
@@ -91,6 +93,7 @@ export async function toggleRoomLike(userId: string, roomOwnerId: string): Promi
 // ============================
 
 export async function fetchLeaderboard(type: 'pomodoros' | 'minutes' = 'pomodoros'): Promise<LeaderboardEntry[]> {
+  const supabase = getSupabase();
   const orderField = type === 'pomodoros' ? 'total_pomodoros' : 'total_focus_minutes';
 
   const { data } = await supabase
@@ -113,6 +116,7 @@ export async function fetchLeaderboard(type: 'pomodoros' | 'minutes' = 'pomodoro
 // ============================
 
 export async function updateRoomPublic(userId: string, isPublic: boolean) {
+  const supabase = getSupabase();
   await supabase
     .from('profiles')
     .update({ is_room_public: isPublic })
