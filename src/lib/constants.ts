@@ -72,3 +72,13 @@ export const THEME_COLORS = {
     corner: '#404570',
   },
 } as const;
+
+const VALID_THEMES = new Set<string>(['default', 'cozy', 'nature', 'space']);
+
+/** 테마 문자열을 검증하여 유효한 RoomTheme 반환 */
+export function validateTheme(theme: unknown): 'default' | 'cozy' | 'nature' | 'space' {
+  if (typeof theme === 'string' && VALID_THEMES.has(theme)) {
+    return theme as 'default' | 'cozy' | 'nature' | 'space';
+  }
+  return 'default';
+}

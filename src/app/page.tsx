@@ -141,6 +141,7 @@ export default function Home() {
                 onClick={() => setLoginOpen(true)}
                 className="clay-button w-10 h-10 flex items-center justify-center overflow-hidden rounded-full"
                 title={user.user_metadata?.full_name || '프로필'}
+                aria-label={user.user_metadata?.full_name || '프로필'}
               >
                 {user.user_metadata?.avatar_url ? (
                   <img
@@ -157,6 +158,7 @@ export default function Home() {
                 onClick={() => setLoginOpen(true)}
                 className="clay-button w-10 h-10 flex items-center justify-center text-lg"
                 title="로그인"
+                aria-label="로그인"
               >
                 👤
               </button>
@@ -167,6 +169,7 @@ export default function Home() {
             onClick={() => setSettingsOpen(true)}
             className="clay-button w-10 h-10 flex items-center justify-center text-lg"
             title="설정"
+            aria-label="설정"
           >
             ⚙️
           </button>
@@ -174,6 +177,7 @@ export default function Home() {
             onClick={() => { setStatsOpen(true); setActiveTab('stats'); }}
             className="clay-button w-10 h-10 hidden md:flex items-center justify-center text-lg"
             title="통계"
+            aria-label="통계"
           >
             📊
           </button>
@@ -181,6 +185,7 @@ export default function Home() {
             onClick={() => { setShopOpen(true); setActiveTab('shop'); }}
             className="clay-button w-10 h-10 hidden md:flex items-center justify-center text-lg"
             title="상점"
+            aria-label="상점"
           >
             🛒
           </button>
@@ -188,6 +193,7 @@ export default function Home() {
             onClick={() => { setSocialOpen(true); setActiveTab('social'); }}
             className="clay-button w-10 h-10 hidden md:flex items-center justify-center text-lg"
             title="소셜"
+            aria-label="소셜"
           >
             👥
           </button>

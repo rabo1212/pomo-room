@@ -37,7 +37,7 @@ export default function SocialModal({ onClose }: SocialModalProps) {
       const data = await fetchPublicRooms(user?.id);
       setRooms(data);
     } catch {
-      // 에러 시 빈 배열 유지
+      showToast('방 목록을 불러오지 못했어요');
     }
     setLoading(false);
   }, [user?.id]);
@@ -48,7 +48,7 @@ export default function SocialModal({ onClose }: SocialModalProps) {
       const data = await fetchLeaderboard(lbType);
       setLeaderboard(data);
     } catch {
-      // 에러 시 빈 배열 유지
+      showToast('리더보드를 불러오지 못했어요');
     }
     setLoading(false);
   }, [lbType]);
@@ -66,7 +66,7 @@ export default function SocialModal({ onClose }: SocialModalProps) {
         .from('profiles')
         .select('is_room_public')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
         .then(({ data }) => {
           if (data) setIsRoomPublic(data.is_room_public);
         });

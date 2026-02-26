@@ -373,6 +373,8 @@ export default function IsometricRoom() {
         width="500"
         height="400"
         xmlns="http://www.w3.org/2000/svg"
+        role="img"
+        aria-label="아이소메트릭 방. 아이템을 드래그하여 배치할 수 있습니다"
         onMouseMove={handleDragMove}
         onMouseUp={handleDragEnd}
         onMouseLeave={handleDragEnd}

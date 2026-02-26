@@ -6,15 +6,21 @@ import { RoomItem, RoomTheme } from '@/types';
 import { syncRoomToCloud } from '@/lib/supabase/sync';
 import { createClient } from '@/lib/supabase/client';
 
+function getSupabase() { return createClient(); }
+
 // 방 데이터 변경 시 DB 동기화 (debounced)
 let syncTimeout: ReturnType<typeof setTimeout> | null = null;
 function debouncedSync() {
   if (syncTimeout) clearTimeout(syncTimeout);
   syncTimeout = setTimeout(() => {
-    createClient().auth.getUser().then(({ data: { user } }) => {
-      if (user) syncRoomToCloud(user.id).catch(() => {});
+    getSupabase().auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        syncRoomToCloud(user.id).catch((err: unknown) => {
+          console.warn('[sync] room sync failed:', err);
+        });
+      }
     });
-  }, 2000); // 2초 후 동기화 (빈번한 드래그 방지)
+  }, 2000);
 }
 
 // 바닥 아이템 기본 위치 (아이소메트릭 u, v 좌표)

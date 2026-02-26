@@ -1,3 +1,9 @@
+/** 로컬 타임존 기준 YYYY-MM-DD 키 (UTC 기반 toISOString 대신 사용) */
+export function localDateKey(date?: Date): string {
+  const d = date ?? new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export function formatTime(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;

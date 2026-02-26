@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { fetchUserRoom } from '@/lib/supabase/social';
 import { PublicRoomData, RoomTheme } from '@/types';
-import { THEME_COLORS } from '@/lib/constants';
+import { THEME_COLORS, validateTheme } from '@/lib/constants';
 import { DEFAULT_ITEM_POSITIONS } from '@/stores/roomStore';
 
 // ===== 아이소메트릭 좌표 =====
@@ -73,7 +73,7 @@ function renderLight(itemId: string) {
 
 // ===== 방 뷰어 =====
 function RoomViewer({ data }: { data: PublicRoomData }) {
-  const tc = THEME_COLORS[data.room.theme as RoomTheme] || THEME_COLORS.default;
+  const tc = THEME_COLORS[validateTheme(data.room.theme)];
   const WALL_H = 155;
 
   const getPos = (itemId: string): [number, number] => {

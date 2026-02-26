@@ -153,8 +153,12 @@ export const useTimerStore = create<TimerState>()(
             createClient().auth.getUser().then(({ data: { user } }) => {
               if (user) {
                 const newCoins = state.coins + COINS_PER_POMODORO;
-                recordSession(user.id, focusMinutes).catch(() => {});
-                updateProfileCoins(user.id, newCoins).catch(() => {});
+                recordSession(user.id, focusMinutes).catch((e) => {
+                  console.warn('[sync] session record failed:', e);
+                });
+                updateProfileCoins(user.id, newCoins).catch((e) => {
+                  console.warn('[sync] coin update failed:', e);
+                });
               }
             });
           }

@@ -68,6 +68,7 @@ export default function TimerControls() {
           onClick={reset}
           className="clay-button w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center text-lavender-dark text-base sm:text-lg"
           title="초기화"
+          aria-label="타이머 초기화"
         >
           ↺
         </button>
@@ -76,6 +77,7 @@ export default function TimerControls() {
       {/* Main button */}
       <button
         onClick={handleMainButton}
+        aria-label={mainButtonLabel}
         className={`clay-button w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-lg sm:text-xl font-bold font-[family-name:var(--font-fredoka)] ${mainButtonColor}`}
       >
         {mainButtonLabel}
@@ -87,6 +89,7 @@ export default function TimerControls() {
           onClick={skip}
           className="clay-button w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center text-lavender-dark text-base sm:text-lg"
           title="건너뛰기"
+          aria-label="세션 건너뛰기"
         >
           ⏭
         </button>

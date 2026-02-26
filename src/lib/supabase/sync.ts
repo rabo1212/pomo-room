@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useTimerStore } from '@/stores/timerStore';
 import { useRoomStore } from '@/stores/roomStore';
 import { useStatsStore } from '@/stores/statsStore';
+import { localDateKey } from '@/lib/utils';
 
 function getSupabase() { return createClient(); }
 
@@ -42,7 +43,7 @@ export async function recordSession(userId: string, durationMinutes: number) {
   });
 
   // daily_stats 업서트
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateKey();
   const { data: existing } = await supabase
     .from('daily_stats')
     .select('*')

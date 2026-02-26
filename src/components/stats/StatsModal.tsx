@@ -4,6 +4,7 @@ import { useMemo, useEffect, useState } from 'react';
 import { useStatsStore } from '@/stores/statsStore';
 import { checkBadges } from '@/lib/badges';
 import ShareCard from '@/components/share/ShareCard';
+import { localDateKey } from '@/lib/utils';
 
 interface StatsModalProps {
   onClose: () => void;
@@ -36,7 +37,7 @@ function WeeklyChart({ data }: { data: { label: string; count: number }[] }) {
                 width={barWidth}
                 height={barH}
                 rx="6"
-                fill={isToday ? '#FF6B6B' : '#7ECEC1'}
+                fill={isToday ? 'var(--color-coral)' : 'var(--color-mint)'}
               />
             )}
             {/* 카운트 */}
@@ -47,7 +48,7 @@ function WeeklyChart({ data }: { data: { label: string; count: number }[] }) {
                 textAnchor="middle"
                 fontSize="10"
                 fontWeight="bold"
-                fill={isToday ? '#FF6B6B' : '#7ECEC1'}
+                fill={isToday ? 'var(--color-coral)' : 'var(--color-mint)'}
               >
                 {d.count}
               </text>
@@ -58,7 +59,7 @@ function WeeklyChart({ data }: { data: { label: string; count: number }[] }) {
               y={chartH + 16}
               textAnchor="middle"
               fontSize="11"
-              fill={isToday ? '#FF6B6B' : '#999'}
+              fill={isToday ? 'var(--color-coral)' : 'var(--color-lavender-dark)'}
               fontWeight={isToday ? 'bold' : 'normal'}
             >
               {d.label}
@@ -68,10 +69,6 @@ function WeeklyChart({ data }: { data: { label: string; count: number }[] }) {
       })}
     </svg>
   );
-}
-
-function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
 }
 
 function dayLabel(dateStr: string): string {
@@ -135,24 +132,29 @@ function BadgeSection({
 export default function StatsModal({ onClose }: StatsModalProps) {
   const [shareOpen, setShareOpen] = useState(false);
 
-  // ESC 키로 닫기
+  // ESC 키로 닫기 (ShareCard가 열려있으면 ShareCard만 닫기)
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (shareOpen) setShareOpen(false);
+        else onClose();
+      }
+    };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onClose]);
+  }, [onClose, shareOpen]);
 
   const dailyRecords = useStatsStore((s) => s.dailyRecords);
   const recordPomodoro = useStatsStore((s) => s.recordPomodoro);
 
-  const today = useMemo(() => dailyRecords[todayKey()] || { count: 0, minutes: 0 }, [dailyRecords]);
+  const today = useMemo(() => dailyRecords[localDateKey()] || { count: 0, minutes: 0 }, [dailyRecords]);
 
   const weekly = useMemo(() => {
     const result = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const key = d.toISOString().slice(0, 10);
+      const key = localDateKey(d);
       const data = dailyRecords[key] || { count: 0, minutes: 0 };
       result.push({ day: key, label: dayLabel(key), count: data.count, minutes: data.minutes });
     }
@@ -162,9 +164,9 @@ export default function StatsModal({ onClose }: StatsModalProps) {
   const streak = useMemo(() => {
     let s = 0;
     const d = new Date();
-    if (!dailyRecords[todayKey()]) d.setDate(d.getDate() - 1);
+    if (!dailyRecords[localDateKey()]) d.setDate(d.getDate() - 1);
     while (true) {
-      const key = d.toISOString().slice(0, 10);
+      const key = localDateKey(d);
       if (dailyRecords[key]?.count > 0) { s++; d.setDate(d.getDate() - 1); }
       else break;
     }

@@ -3,13 +3,10 @@
 import { useRef, useEffect } from 'react';
 import { useStatsStore } from '@/stores/statsStore';
 import { showToast } from '@/components/ui/Toast';
+import { localDateKey } from '@/lib/utils';
 
 interface ShareCardProps {
   onClose: () => void;
-}
-
-function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
 }
 
 /** roundRect 폴리필 (Safari < 17.4 대응) */
@@ -30,14 +27,14 @@ function drawRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: n
 export default function ShareCard({ onClose }: ShareCardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dailyRecords = useStatsStore((s) => s.dailyRecords);
-  const today = dailyRecords[todayKey()] || { count: 0, minutes: 0 };
+  const today = dailyRecords[localDateKey()] || { count: 0, minutes: 0 };
 
   // 스트릭 계산
   let streak = 0;
   const d = new Date();
-  if (!dailyRecords[todayKey()]) d.setDate(d.getDate() - 1);
+  if (!dailyRecords[localDateKey()]) d.setDate(d.getDate() - 1);
   while (true) {
-    const key = d.toISOString().slice(0, 10);
+    const key = localDateKey(d);
     if (dailyRecords[key]?.count > 0) { streak++; d.setDate(d.getDate() - 1); }
     else break;
   }
@@ -127,7 +124,7 @@ export default function ShareCard({ onClose }: ShareCardProps) {
     const url = canvas.toDataURL('image/png');
     const a = document.createElement('a');
     a.href = url;
-    a.download = `pomo-room-${todayKey()}.png`;
+    a.download = `pomo-room-${localDateKey()}.png`;
     a.click();
     showToast('이미지 저장 완료! 📸');
   };
@@ -138,7 +135,7 @@ export default function ShareCard({ onClose }: ShareCardProps) {
 
     canvas.toBlob(async (blob) => {
       if (!blob) return;
-      const file = new File([blob], `pomo-room-${todayKey()}.png`, { type: 'image/png' });
+      const file = new File([blob], `pomo-room-${localDateKey()}.png`, { type: 'image/png' });
 
       if (navigator.share) {
         try {
@@ -169,7 +166,7 @@ export default function ShareCard({ onClose }: ShareCardProps) {
         </div>
 
         <div className="flex justify-center mb-4 overflow-hidden rounded-xl">
-          <canvas ref={canvasRef} className="w-full max-w-[300px] h-auto rounded-xl" style={{ imageRendering: 'auto' }} />
+          <canvas ref={canvasRef} className="w-full max-w-[300px] h-auto rounded-xl" style={{ imageRendering: 'auto' }} role="img" aria-label="오늘의 뽀모도로 통계 공유 카드" />
         </div>
 
         <div className="flex gap-3">

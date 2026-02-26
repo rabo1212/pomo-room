@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { localDateKey } from '@/lib/utils';
 
 interface DailyRecord {
   count: number;
@@ -18,10 +19,6 @@ interface StatsState {
   getTotalStats: () => { count: number; minutes: number; days: number };
 }
 
-function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function dayLabel(dateStr: string): string {
   const days = ['일', '월', '화', '수', '목', '금', '토'];
   return days[new Date(dateStr + 'T00:00:00').getDay()];
@@ -34,7 +31,7 @@ export const useStatsStore = create<StatsState>()(
 
       recordPomodoro: (minutes) =>
         set((state) => {
-          const key = todayKey();
+          const key = localDateKey();
           const prev = state.dailyRecords[key] || { count: 0, minutes: 0 };
           return {
             dailyRecords: {
@@ -45,7 +42,7 @@ export const useStatsStore = create<StatsState>()(
         }),
 
       getTodayStats: () => {
-        return get().dailyRecords[todayKey()] || { count: 0, minutes: 0 };
+        return get().dailyRecords[localDateKey()] || { count: 0, minutes: 0 };
       },
 
       getWeeklyStats: () => {
@@ -54,7 +51,7 @@ export const useStatsStore = create<StatsState>()(
         for (let i = 6; i >= 0; i--) {
           const d = new Date();
           d.setDate(d.getDate() - i);
-          const key = d.toISOString().slice(0, 10);
+          const key = localDateKey(d);
           const data = records[key] || { count: 0, minutes: 0 };
           result.push({ day: key, label: dayLabel(key), count: data.count, minutes: data.minutes });
         }
@@ -67,12 +64,12 @@ export const useStatsStore = create<StatsState>()(
         const d = new Date();
 
         // 오늘 기록이 있으면 오늘부터, 없으면 어제부터
-        if (!records[todayKey()]) {
+        if (!records[localDateKey()]) {
           d.setDate(d.getDate() - 1);
         }
 
         while (true) {
-          const key = d.toISOString().slice(0, 10);
+          const key = localDateKey(d);
           if (records[key] && records[key].count > 0) {
             streak++;
             d.setDate(d.getDate() - 1);
