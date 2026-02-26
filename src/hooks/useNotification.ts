@@ -17,12 +17,17 @@ export function useNotification() {
     setPermission(result);
   }, []);
 
-  const notify = useCallback((title: string, body: string) => {
+  const notify = useCallback((title: string, body: string, tag?: string) => {
     if (permission !== 'granted') return;
-    new Notification(title, {
-      body,
-      icon: '/favicon.ico',
-    });
+
+    // 백그라운드 탭일 때만 알림 (포그라운드에서는 토스트로 대체)
+    if (document.hidden) {
+      new Notification(title, {
+        body,
+        icon: '/icon-192.png',
+        tag: tag || 'pomo-room',
+      } as NotificationOptions);
+    }
   }, [permission]);
 
   return { permission, requestPermission, notify };

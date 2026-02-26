@@ -54,6 +54,10 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
+    // 서비스 워커 등록 (PWA)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
   }, []);
 
   // 키보드 단축키
