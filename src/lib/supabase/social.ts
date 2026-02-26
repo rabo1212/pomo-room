@@ -70,7 +70,7 @@ export async function toggleRoomLike(userId: string, roomOwnerId: string): Promi
     .select('id')
     .eq('user_id', userId)
     .eq('room_owner_id', roomOwnerId)
-    .single();
+    .maybeSingle();
 
   if (existing) {
     // 좋아요 취소
@@ -122,7 +122,7 @@ export async function fetchUserRoom(userId: string): Promise<PublicRoomData | nu
     .from('profiles')
     .select('id, display_name, avatar_url, total_pomodoros, total_focus_minutes, current_streak, longest_streak, last_pomodoro_date, is_room_public, likes_received, username, coins')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (!profile || !profile.is_room_public) return null;
 
@@ -130,7 +130,7 @@ export async function fetchUserRoom(userId: string): Promise<PublicRoomData | nu
     .from('user_rooms')
     .select('theme, active_item_ids, item_positions')
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
 
   if (!room) return null;
 

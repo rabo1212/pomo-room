@@ -8,6 +8,7 @@ type AmbientType = 'rain' | 'cafe' | 'forest' | 'none';
 let ctx: AudioContext | null = null;
 let masterGain: GainNode | null = null;
 let activeNodes: AudioNode[] = [];
+let activeTimers: ReturnType<typeof setTimeout>[] = [];
 let currentType: AmbientType = 'none';
 
 function getCtx(): AudioContext {
@@ -24,6 +25,16 @@ function getCtx(): AudioContext {
 function getMasterGain(): GainNode {
   getCtx();
   return masterGain!;
+}
+
+/** 타이머 등록 (정리 추적용) */
+function scheduleTimer(fn: () => void, delay: number) {
+  const id = setTimeout(() => {
+    // 실행 후 목록에서 제거
+    activeTimers = activeTimers.filter(t => t !== id);
+    fn();
+  }, delay);
+  activeTimers.push(id);
 }
 
 /** 노이즈 버퍼 생성 */
@@ -44,13 +55,11 @@ function startRain(audioCtx: AudioContext, dest: AudioNode) {
   noise.buffer = createNoiseBuffer(audioCtx, 4);
   noise.loop = true;
 
-  // 로우패스 → 빗소리 느낌
   const lpf = audioCtx.createBiquadFilter();
   lpf.type = 'lowpass';
   lpf.frequency.value = 800;
   lpf.Q.value = 0.5;
 
-  // 하이패스 → 바닥 울림 제거
   const hpf = audioCtx.createBiquadFilter();
   hpf.type = 'highpass';
   hpf.frequency.value = 200;
@@ -136,7 +145,7 @@ function startForest(audioCtx: AudioContext, dest: AudioNode) {
   birdGain.connect(dest);
   activeNodes.push(birdGain);
 
-  // 간헐적 새소리 - 2개 오실레이터 교대
+  // 간헐적 새소리
   function chirp() {
     if (currentType !== 'forest') return;
     const a = audioCtx.currentTime;
@@ -156,13 +165,20 @@ function startForest(audioCtx: AudioContext, dest: AudioNode) {
     osc.start(a);
     osc.stop(a + 0.15);
 
-    setTimeout(chirp, 2000 + Math.random() * 5000);
+    scheduleTimer(chirp, 2000 + Math.random() * 5000);
   }
-  setTimeout(chirp, 1000);
+  scheduleTimer(chirp, 1000);
 }
 
 /** 현재 재생 중인 사운드 정리 */
 function stopAll() {
+  // 모든 예약된 타이머 정리
+  for (const id of activeTimers) {
+    clearTimeout(id);
+  }
+  activeTimers = [];
+
+  // 오디오 노드 정리
   for (const node of activeNodes) {
     try {
       if ('stop' in node && typeof (node as OscillatorNode).stop === 'function') {

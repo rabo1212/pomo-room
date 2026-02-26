@@ -17,7 +17,7 @@ export async function fetchProfile(userId: string) {
     .from('profiles')
     .select('*')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
   return data;
 }
 
@@ -48,7 +48,7 @@ export async function recordSession(userId: string, durationMinutes: number) {
     .select('*')
     .eq('user_id', userId)
     .eq('day', today)
-    .single();
+    .maybeSingle();
 
   if (existing) {
     await supabase
@@ -72,7 +72,7 @@ export async function recordSession(userId: string, durationMinutes: number) {
     .from('profiles')
     .select('total_pomodoros, total_focus_minutes')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (profile) {
     await supabase
@@ -106,7 +106,7 @@ export async function syncRoomToCloud(userId: string) {
     .from('user_rooms')
     .select('id')
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
 
   if (existing) {
     await supabase
@@ -124,7 +124,7 @@ export async function syncRoomFromCloud(userId: string) {
     .from('user_rooms')
     .select('*')
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
 
   if (data) {
     const roomStore = useRoomStore.getState();
@@ -150,7 +150,7 @@ export async function mergeLocalDataToCloud(userId: string) {
     .from('profiles')
     .select('coins, total_pomodoros')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (profile) {
     // 로컬 코인이 더 많으면 클라우드에 반영 (첫 로그인)
@@ -170,7 +170,7 @@ export async function mergeLocalDataToCloud(userId: string) {
     .from('user_rooms')
     .select('id')
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
 
   if (!existingRoom) {
     // 클라우드에 방이 없으면 로컬 데이터 업로드
@@ -192,7 +192,7 @@ export async function mergeLocalDataToCloud(userId: string) {
       .select('id, count, minutes')
       .eq('user_id', userId)
       .eq('day', day)
-      .single();
+      .maybeSingle();
 
     if (!existing) {
       await supabase.from('daily_stats').insert({

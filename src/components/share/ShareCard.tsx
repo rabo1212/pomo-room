@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback } from 'react';
+import { useRef, useEffect } from 'react';
 import { useStatsStore } from '@/stores/statsStore';
 import { showToast } from '@/components/ui/Toast';
 
@@ -10,6 +10,21 @@ interface ShareCardProps {
 
 function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+/** roundRect 폴리필 (Safari < 17.4 대응) */
+function drawRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
 }
 
 export default function ShareCard({ onClose }: ShareCardProps) {
@@ -27,7 +42,8 @@ export default function ShareCard({ onClose }: ShareCardProps) {
     else break;
   }
 
-  const drawCard = useCallback(() => {
+  // useEffect로 안정적으로 캔버스 그리기
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -42,15 +58,13 @@ export default function ShareCard({ onClose }: ShareCardProps) {
     grad.addColorStop(0, '#FFF8F0');
     grad.addColorStop(1, '#FFE4D6');
     ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.roundRect(0, 0, w, h, 20);
+    drawRoundRect(ctx, 0, 0, w, h, 20);
     ctx.fill();
 
     // 테두리
     ctx.strokeStyle = '#FF6B6B';
     ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.roundRect(4, 4, w - 8, h - 8, 18);
+    drawRoundRect(ctx, 4, 4, w - 8, h - 8, 18);
     ctx.stroke();
 
     // 토마토 아이콘
@@ -70,7 +84,7 @@ export default function ShareCard({ onClose }: ShareCardProps) {
 
     ctx.font = '18px sans-serif';
     ctx.fillStyle = '#9A87B3';
-    ctx.fillText(`오늘 뽀모도로 완료`, w / 2, 198);
+    ctx.fillText('오늘 뽀모도로 완료', w / 2, 198);
 
     // 통계 카드들
     const cards = [
@@ -83,10 +97,8 @@ export default function ShareCard({ onClose }: ShareCardProps) {
       const cy = 252;
       // 카드 배경
       ctx.fillStyle = '#FFFFFF';
-      ctx.beginPath();
-      ctx.roundRect(cx - 65, cy - 30, 130, 65, 12);
+      drawRoundRect(ctx, cx - 65, cy - 30, 130, 65, 12);
       ctx.fill();
-      ctx.shadowColor = 'transparent';
 
       ctx.font = '22px serif';
       ctx.textAlign = 'center';
@@ -108,14 +120,6 @@ export default function ShareCard({ onClose }: ShareCardProps) {
     ctx.textAlign = 'center';
     ctx.fillText(dateStr, w / 2, h - 16);
   }, [today, streak]);
-
-  // 마운트 시 그리기
-  const canvasCallback = useCallback((node: HTMLCanvasElement | null) => {
-    if (node) {
-      (canvasRef as React.MutableRefObject<HTMLCanvasElement>).current = node;
-      setTimeout(drawCard, 50);
-    }
-  }, [drawCard]);
 
   const handleDownload = () => {
     const canvas = canvasRef.current;
@@ -165,7 +169,7 @@ export default function ShareCard({ onClose }: ShareCardProps) {
         </div>
 
         <div className="flex justify-center mb-4 overflow-hidden rounded-xl">
-          <canvas ref={canvasCallback} className="w-full max-w-[300px] h-auto rounded-xl" style={{ imageRendering: 'auto' }} />
+          <canvas ref={canvasRef} className="w-full max-w-[300px] h-auto rounded-xl" style={{ imageRendering: 'auto' }} />
         </div>
 
         <div className="flex gap-3">
