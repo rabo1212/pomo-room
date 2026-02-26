@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { SHOP_ITEMS } from '@/lib/constants';
 import { useTimerStore } from '@/stores/timerStore';
 import { useRoomStore } from '@/stores/roomStore';
@@ -62,6 +62,8 @@ export default function ShopModal({ onClose }: ShopModalProps) {
   const theme = useRoomStore((s) => s.theme);
   const { playCoin } = useSound();
   const [justBought, setJustBought] = useState<string | null>(null);
+  const [confetti, setConfetti] = useState<{ id: number; x: number; y: number; color: string; delay: number }[]>([]);
+  const confettiId = useRef(0);
 
   const handlePurchase = (itemId: string, price: number, category: string) => {
     if (ownedItemIds.includes(itemId)) return;
@@ -75,9 +77,18 @@ export default function ShopModal({ onClose }: ShopModalProps) {
       setTheme(t);
     }
 
-    // 구매 피드백
+    // 구매 피드백 + 컨페티
     setJustBought(itemId);
-    setTimeout(() => setJustBought(null), 1200);
+    const colors = ['#FF6B6B', '#FFB347', '#7ECEC1', '#B8A9C9', '#FFD700', '#FF8A8A'];
+    const particles = Array.from({ length: 12 }, () => ({
+      id: confettiId.current++,
+      x: Math.random() * 200 - 100,
+      y: -(Math.random() * 120 + 40),
+      color: colors[Math.floor(Math.random() * colors.length)],
+      delay: Math.random() * 0.3,
+    }));
+    setConfetti(particles);
+    setTimeout(() => { setJustBought(null); setConfetti([]); }, 1500);
   };
 
   const handleToggle = (itemId: string, category: string) => {
@@ -185,6 +196,24 @@ export default function ShopModal({ onClose }: ShopModalProps) {
             </div>
           </div>
         ))}
+
+        {/* 컨페티 이펙트 */}
+        {confetti.length > 0 && (
+          <div className="fixed inset-0 pointer-events-none z-[60] overflow-hidden">
+            {confetti.map(p => (
+              <div
+                key={p.id}
+                className="absolute left-1/2 top-1/2 w-2 h-2 rounded-full animate-confetti"
+                style={{
+                  backgroundColor: p.color,
+                  '--confetti-x': `${p.x}px`,
+                  '--confetti-y': `${p.y}px`,
+                  animationDelay: `${p.delay}s`,
+                } as React.CSSProperties}
+              />
+            ))}
+          </div>
+        )}
 
         {/* 디버그: 코인 추가 (개발용) */}
         {process.env.NODE_ENV === 'development' && (

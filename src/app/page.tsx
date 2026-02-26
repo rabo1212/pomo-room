@@ -15,6 +15,7 @@ import BottomNav from '@/components/layout/BottomNav';
 import Toast from '@/components/ui/Toast';
 import { useTimer } from '@/hooks/useTimer';
 import { useAuth } from '@/hooks/useAuth';
+import { useTimerStore } from '@/stores/timerStore';
 import { mergeLocalDataToCloud } from '@/lib/supabase/sync';
 import { showToast } from '@/components/ui/Toast';
 
@@ -54,6 +55,31 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // 키보드 단축키
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // 모달이 열려있으면 무시 (ESC는 각 모달에서 처리)
+      if (shopOpen || statsOpen || settingsOpen || loginOpen || socialOpen) return;
+      // input/textarea에서는 무시
+      if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return;
+
+      const { status, isRunning, start, pause, resume, skip, reset } = useTimerStore.getState();
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (status === 'idle') start();
+        else if (isRunning) pause();
+        else resume();
+      } else if (e.code === 'KeyS' && !e.metaKey && !e.ctrlKey) {
+        if (status !== 'idle') skip();
+      } else if (e.code === 'KeyR' && !e.metaKey && !e.ctrlKey) {
+        reset();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [shopOpen, statsOpen, settingsOpen, loginOpen, socialOpen]);
 
   // 로그인 시 데이터 동기화
   useEffect(() => {
