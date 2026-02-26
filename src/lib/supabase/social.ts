@@ -112,6 +112,41 @@ export async function fetchLeaderboard(type: 'pomodoros' | 'minutes' = 'pomodoro
 }
 
 // ============================
+// 단일 유저 방 조회 (공유 링크용)
+// ============================
+
+export async function fetchUserRoom(userId: string): Promise<PublicRoomData | null> {
+  const supabase = getSupabase();
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, display_name, avatar_url, total_pomodoros, total_focus_minutes, current_streak, longest_streak, last_pomodoro_date, is_room_public, likes_received, username, coins')
+    .eq('id', userId)
+    .single();
+
+  if (!profile || !profile.is_room_public) return null;
+
+  const { data: room } = await supabase
+    .from('user_rooms')
+    .select('theme, active_item_ids, item_positions')
+    .eq('user_id', userId)
+    .single();
+
+  if (!room) return null;
+
+  return {
+    profile: profile as PublicRoomData['profile'],
+    room: {
+      theme: room.theme,
+      active_item_ids: room.active_item_ids || [],
+      item_positions: room.item_positions || {},
+    },
+    is_liked: false,
+    like_count: profile.likes_received || 0,
+  };
+}
+
+// ============================
 // 방 공개 토글
 // ============================
 

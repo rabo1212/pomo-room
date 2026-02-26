@@ -13,6 +13,7 @@ import LoginModal from '@/components/auth/LoginModal';
 import SocialModal from '@/components/social/SocialModal';
 import BottomNav from '@/components/layout/BottomNav';
 import Toast from '@/components/ui/Toast';
+import OnboardingGuide from '@/components/onboarding/OnboardingGuide';
 import { useTimer } from '@/hooks/useTimer';
 import { useAuth } from '@/hooks/useAuth';
 import { useDarkMode } from '@/hooks/useDarkMode';
@@ -261,6 +262,9 @@ export default function Home() {
 
       {/* Toast */}
       <Toast />
+
+      {/* 온보딩 가이드 (첫 방문 시) */}
+      <OnboardingGuide />
     </main>
   );
 }

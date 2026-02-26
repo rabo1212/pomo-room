@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { useStatsStore } from '@/stores/statsStore';
 import { checkBadges } from '@/lib/badges';
+import ShareCard from '@/components/share/ShareCard';
 
 interface StatsModalProps {
   onClose: () => void;
@@ -132,6 +133,8 @@ function BadgeSection({
 }
 
 export default function StatsModal({ onClose }: StatsModalProps) {
+  const [shareOpen, setShareOpen] = useState(false);
+
   // ESC 키로 닫기
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -265,8 +268,21 @@ export default function StatsModal({ onClose }: StatsModalProps) {
           </div>
         )}
 
+        {/* 공유 카드 버튼 */}
+        {today.count > 0 && (
+          <button
+            onClick={() => setShareOpen(true)}
+            className="clay-button w-full py-3 text-sm font-bold text-coral mt-3"
+          >
+            📸 오늘의 기록 공유하기
+          </button>
+        )}
+
         {/* 배지 섹션 */}
         <BadgeSection streak={streak} totalPomodoros={total.count} totalMinutes={total.minutes} />
+
+        {/* 공유 카드 모달 */}
+        {shareOpen && <ShareCard onClose={() => setShareOpen(false)} />}
 
         {/* 테스트 버튼 (개발용) */}
         {process.env.NODE_ENV === 'development' && (
