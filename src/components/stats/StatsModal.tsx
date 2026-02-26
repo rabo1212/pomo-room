@@ -2,6 +2,7 @@
 
 import { useMemo, useEffect } from 'react';
 import { useStatsStore } from '@/stores/statsStore';
+import { checkBadges } from '@/lib/badges';
 
 interface StatsModalProps {
   onClose: () => void;
@@ -25,7 +26,7 @@ function WeeklyChart({ data }: { data: { label: string; count: number }[] }) {
         return (
           <g key={i}>
             {/* 바 배경 */}
-            <rect x={x} y={0} width={barWidth} height={chartH} rx="6" fill="#F5EDE3" />
+            <rect x={x} y={0} width={barWidth} height={chartH} rx="6" fill="var(--color-cream-dark)" />
             {/* 바 */}
             {d.count > 0 && (
               <rect
@@ -75,6 +76,59 @@ function todayKey(): string {
 function dayLabel(dateStr: string): string {
   const days = ['일', '월', '화', '수', '목', '금', '토'];
   return days[new Date(dateStr + 'T00:00:00').getDay()];
+}
+
+function BadgeSection({
+  streak,
+  totalPomodoros,
+  totalMinutes,
+}: {
+  streak: number;
+  totalPomodoros: number;
+  totalMinutes: number;
+}) {
+  const badges = useMemo(
+    () =>
+      checkBadges({
+        streak,
+        totalPomodoros,
+        totalMinutes,
+        totalDays: 0, // 배지 체크에 사용하지 않음
+      }),
+    [streak, totalPomodoros, totalMinutes]
+  );
+
+  const earned = badges.filter((b) => b.earned);
+  const unearned = badges.filter((b) => !b.earned);
+
+  return (
+    <div className="clay p-4 mt-3">
+      <h3 className="text-sm font-bold text-lavender-dark mb-3">🏅 배지</h3>
+      <div className="grid grid-cols-4 gap-2">
+        {earned.map((b) => (
+          <div key={b.id} className="text-center" title={b.description}>
+            <div className="text-2xl">{b.icon}</div>
+            <div className="text-[9px] text-lavender-dark font-semibold mt-0.5 leading-tight">
+              {b.name}
+            </div>
+          </div>
+        ))}
+        {unearned.map((b) => (
+          <div key={b.id} className="text-center opacity-25" title={b.description}>
+            <div className="text-2xl grayscale">{b.icon}</div>
+            <div className="text-[9px] text-lavender-dark mt-0.5 leading-tight">
+              {b.name}
+            </div>
+          </div>
+        ))}
+      </div>
+      {earned.length === 0 && (
+        <p className="text-xs text-lavender-dark/50 text-center mt-2">
+          뽀모도로를 완료하면 배지를 획득할 수 있어요!
+        </p>
+      )}
+    </div>
+  );
 }
 
 export default function StatsModal({ onClose }: StatsModalProps) {
@@ -210,6 +264,9 @@ export default function StatsModal({ onClose }: StatsModalProps) {
             <WeeklyChart data={weekly} />
           </div>
         )}
+
+        {/* 배지 섹션 */}
+        <BadgeSection streak={streak} totalPomodoros={total.count} totalMinutes={total.minutes} />
 
         {/* 테스트 버튼 (개발용) */}
         {process.env.NODE_ENV === 'development' && (

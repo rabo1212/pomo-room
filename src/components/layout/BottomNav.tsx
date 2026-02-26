@@ -17,7 +17,7 @@ const tabs: { key: Tab; icon: string; label: string }[] = [
 export default function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   return (
     <nav className="bottom-nav fixed bottom-0 left-0 right-0 md:hidden z-40">
-      <div className="bg-white/95 backdrop-blur-sm border-t border-cream-dark">
+      <div className="bg-white/95 dark:bg-[#2A2A3E]/95 backdrop-blur-sm border-t border-cream-dark">
         <div className="flex items-stretch justify-around max-w-md mx-auto">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.key;

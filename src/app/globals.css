@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Tailwind v4: dark: variant를 .dark 클래스 기반으로 변경 */
+@variant dark (&:where(.dark, .dark *));
+
 /* ===== Custom Theme (Tailwind v4) ===== */
 @theme inline {
   --color-cream: #FFF8F0;
@@ -27,12 +30,25 @@
   --font-body: 'Nunito', sans-serif;
 }
 
+/* ===== Dark Mode Theme Overrides ===== */
+html.dark {
+  --color-cream: #1E1E2E;
+  --color-cream-dark: #181825;
+  --color-wall: #313244;
+  --color-wall-dark: #45475A;
+  color-scheme: dark;
+}
+
 /* ===== Base ===== */
 body {
   background: var(--color-cream);
   color: #3D3D3D;
   font-family: var(--font-body);
   -webkit-tap-highlight-color: transparent;
+}
+
+html.dark body {
+  color: #CDD6F4;
 }
 
 /* ===== Claymorphism Utilities ===== */
@@ -85,6 +101,49 @@ body {
     -1px -1px 3px rgba(255,255,255,0.9),
     inset 3px 3px 6px rgba(0,0,0,0.06),
     inset -1px -1px 2px rgba(255,255,255,0.5);
+}
+
+/* Dark mode claymorphism */
+html.dark .clay {
+  background: #2A2A3E;
+  box-shadow:
+    6px 6px 12px rgba(0,0,0,0.3),
+    -3px -3px 8px rgba(255,255,255,0.03),
+    inset 2px 2px 4px rgba(255,255,255,0.05),
+    inset -1px -1px 3px rgba(0,0,0,0.15);
+}
+
+html.dark .clay-pressed {
+  box-shadow:
+    3px 3px 6px rgba(0,0,0,0.3),
+    -1px -1px 4px rgba(255,255,255,0.03),
+    inset 3px 3px 6px rgba(0,0,0,0.2),
+    inset -1px -1px 2px rgba(255,255,255,0.03);
+}
+
+html.dark .clay-button {
+  background: #2A2A3E;
+  box-shadow:
+    4px 4px 10px rgba(0,0,0,0.3),
+    -2px -2px 6px rgba(255,255,255,0.03),
+    inset 1px 1px 3px rgba(255,255,255,0.05),
+    inset -1px -1px 2px rgba(0,0,0,0.15);
+}
+
+html.dark .clay-button:hover {
+  box-shadow:
+    5px 5px 12px rgba(0,0,0,0.35),
+    -3px -3px 8px rgba(255,255,255,0.04),
+    inset 1px 1px 3px rgba(255,255,255,0.05),
+    inset -1px -1px 2px rgba(0,0,0,0.15);
+}
+
+html.dark .clay-button:active {
+  box-shadow:
+    2px 2px 5px rgba(0,0,0,0.3),
+    -1px -1px 3px rgba(255,255,255,0.03),
+    inset 3px 3px 6px rgba(0,0,0,0.2),
+    inset -1px -1px 2px rgba(255,255,255,0.03);
 }
 
 /* ===== Character Animations ===== */
@@ -148,6 +207,11 @@ body {
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
   border-radius: 12px;
+}
+
+html.dark .skeleton {
+  background: linear-gradient(90deg, #313244 25%, #45475A 50%, #313244 75%);
+  background-size: 200% 100%;
 }
 
 /* ===== Timer Display ===== */
@@ -251,6 +315,19 @@ input[type="range"]::-moz-range-thumb {
   box-shadow:
     2px 2px 6px rgba(0,0,0,0.15),
     -1px -1px 3px rgba(255,255,255,0.9);
+}
+
+html.dark input[type="range"]::-webkit-slider-thumb {
+  background: #45475A;
+  box-shadow:
+    2px 2px 6px rgba(0,0,0,0.3),
+    inset 1px 1px 2px rgba(255,255,255,0.1);
+}
+
+html.dark input[type="range"]::-moz-range-thumb {
+  background: #45475A;
+  box-shadow:
+    2px 2px 6px rgba(0,0,0,0.3);
 }
 
 /* ===== Confetti ===== */

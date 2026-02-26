@@ -42,13 +42,25 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
       <head>
-        <meta name="theme-color" content="#FF6B6B" />
+        <meta name="theme-color" content="#FF6B6B" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#1E1E2E" media="(prefers-color-scheme: dark)" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
+        {/* 다크모드 FOUC 방지: 페인트 전에 클래스 적용 */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function(){
+            try {
+              var t = localStorage.getItem('pomo-theme');
+              if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+              }
+            } catch(e) {}
+          })();
+        `}} />
       </head>
       <body
         className={`${fredoka.variable} ${nunito.variable} antialiased`}

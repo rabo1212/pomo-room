@@ -86,7 +86,7 @@ export default function TimerDisplay() {
         </svg>
         {/* Time text */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="timer-display text-5xl sm:text-6xl font-bold text-[#3D3D3D] tracking-wider">
+          <span className="timer-display text-5xl sm:text-6xl font-bold tracking-wider">
             {formatTime(remainingSeconds)}
           </span>
         </div>

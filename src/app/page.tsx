@@ -15,6 +15,7 @@ import BottomNav from '@/components/layout/BottomNav';
 import Toast from '@/components/ui/Toast';
 import { useTimer } from '@/hooks/useTimer';
 import { useAuth } from '@/hooks/useAuth';
+import { useDarkMode } from '@/hooks/useDarkMode';
 import { useTimerStore } from '@/stores/timerStore';
 import { mergeLocalDataToCloud } from '@/lib/supabase/sync';
 import { showToast } from '@/components/ui/Toast';
@@ -51,6 +52,7 @@ export default function Home() {
   const { user, loading: authLoading, signInWithGoogle, signOut } = useAuth();
 
   useTimer();
+  useDarkMode(); // 다크모드 초기화 (시스템 테마 감지)
 
   useEffect(() => {
     setMounted(true);
