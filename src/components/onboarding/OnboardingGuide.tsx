@@ -81,13 +81,14 @@ export default function OnboardingGuide() {
         <div className="flex gap-3">
           <button
             onClick={handleSkip}
-            className="clay-button flex-1 py-2.5 text-sm text-lavender-dark/50"
+            className="clay-button flex-1 py-2.5 text-sm text-lavender-dark"
           >
             건너뛰기
           </button>
           <button
             onClick={handleNext}
-            className="clay-button flex-1 py-2.5 text-sm font-bold bg-coral text-white"
+            className="flex-1 py-2.5 text-sm font-bold text-white rounded-2xl"
+            style={{ background: '#FF6B6B', boxShadow: '4px 4px 10px rgba(0,0,0,0.1), -2px -2px 6px rgba(255,255,255,0.9)' }}
           >
             {step < STEPS.length - 1 ? '다음' : '시작하기!'}
           </button>
