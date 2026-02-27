@@ -12,9 +12,13 @@ const CATEGORY_LABELS: Record<ItemCategory, string> = {
   plant: '🌱 식물',
   pet: '🐱 동물',
   lighting: '💡 조명',
-  theme: '🎨 테마',
   furniture: '🪑 가구',
+  electronics: '🎮 전자기기',
+  decor: '🖼️ 장식',
+  theme: '🎨 테마',
 };
+
+const CATEGORY_ORDER: ItemCategory[] = ['plant', 'pet', 'lighting', 'furniture', 'electronics', 'decor', 'theme'];
 
 const RARITY_STYLES = {
   common: { border: 'border-mint/50', badge: 'bg-mint/20 text-mint-dark', label: '일반' },
@@ -22,23 +26,26 @@ const RARITY_STYLES = {
   legendary: { border: 'border-coral/60', badge: 'bg-coral/20 text-coral-dark', label: '전설' },
 };
 
-// 아이템별 미리보기 이모지 (아이템 고유)
 const ITEM_PREVIEW: Record<string, string> = {
-  plant_01: '🌵',
-  plant_02: '🪴',
-  plant_03: '🌸',
-  cat_01: '🐱',
-  cat_02: '🐈‍⬛',
-  cat_03: '🐈',
-  light_01: '🔦',
-  light_02: '✨',
-  light_03: '💡',
-  theme_cozy: '🏠',
-  theme_nature: '🌲',
-  theme_space: '🌌',
-  furniture_01: '📚',
-  furniture_02: '🟣',
-  furniture_03: '🖼️',
+  // 식물
+  plant_01: '🌵', plant_02: '🪴', plant_03: '🌸',
+  plant_04: '🌺', plant_05: '🌳', plant_06: '🐠', plant_07: '🌿',
+  // 동물
+  cat_01: '🐱', cat_02: '🐈‍⬛', cat_03: '🐈',
+  pet_01: '🐶', pet_02: '🐹', pet_03: '🦜', pet_04: '🐟',
+  // 조명
+  light_01: '🔦', light_02: '✨', light_03: '💡',
+  light_04: '🕯️', light_05: '🎄', light_06: '🪩',
+  // 가구
+  furniture_01: '📚', furniture_02: '🟣', furniture_03: '🖼️',
+  furniture_04: '🛋️', furniture_05: '🛏️', furniture_06: '🪑',
+  furniture_07: '🫖', furniture_08: '🪟', furniture_09: '📖', furniture_10: '💡',
+  // 전자기기
+  electronics_01: '🖥️', electronics_02: '💻', electronics_03: '🎮', electronics_04: '🔊',
+  // 장식
+  decor_01: '🕐', decor_02: '🪞', decor_03: '🏆', decor_04: '🖼️', decor_05: '🌍',
+  // 테마
+  theme_cozy: '🏠', theme_nature: '🌲', theme_space: '🌌',
 };
 
 interface ShopModalProps {
@@ -46,12 +53,14 @@ interface ShopModalProps {
 }
 
 export default function ShopModal({ onClose }: ShopModalProps) {
-  // ESC 키로 닫기
+  const [selectedCategory, setSelectedCategory] = useState<ItemCategory>('plant');
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
+
   const coins = useTimerStore((s) => s.coins);
   const spendCoins = useTimerStore((s) => s.spendCoins);
   const ownedItemIds = useRoomStore((s) => s.ownedItemIds);
@@ -77,7 +86,6 @@ export default function ShopModal({ onClose }: ShopModalProps) {
       setTheme(t);
     }
 
-    // 구매 피드백 + 컨페티
     setJustBought(itemId);
     const colors = ['#FF6B6B', '#FFB347', '#7ECEC1', '#B8A9C9', '#FFD700', '#FF8A8A'];
     const particles = Array.from({ length: 12 }, () => ({
@@ -100,13 +108,13 @@ export default function ShopModal({ onClose }: ShopModalProps) {
     }
   };
 
-  const categories = [...new Set(SHOP_ITEMS.map(i => i.category))] as ItemCategory[];
+  const categoryItems = SHOP_ITEMS.filter(i => i.category === selectedCategory);
 
   return (
     <div className="modal-backdrop fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="modal-content clay bg-cream w-full max-w-md max-h-[80vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+      <div className="modal-content clay bg-cream w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col p-6" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <h2 className="text-xl font-bold font-[family-name:var(--font-fredoka)] text-coral">
             🛒 상점
           </h2>
@@ -121,83 +129,87 @@ export default function ShopModal({ onClose }: ShopModalProps) {
           </div>
         </div>
 
-        {/* Items by category */}
-        {categories.map(category => (
-          <div key={category} className="mb-5">
-            <h3 className="text-sm font-bold text-lavender-dark mb-2">
-              {CATEGORY_LABELS[category]}
-            </h3>
-            <div className="grid grid-cols-3 gap-2">
-              {SHOP_ITEMS.filter(i => i.category === category).map(item => {
-                const owned = ownedItemIds.includes(item.id);
-                const active = category === 'theme'
-                  ? theme === item.id.replace('theme_', '')
-                  : activeItemIds.includes(item.id);
-                const canAfford = coins >= item.price;
-                const rarity = RARITY_STYLES[item.rarity];
-                const wasBought = justBought === item.id;
+        {/* Category Tabs */}
+        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3 scrollbar-hide">
+          {CATEGORY_ORDER.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                selectedCategory === cat
+                  ? 'bg-coral text-white shadow-sm scale-105'
+                  : 'bg-cream-dark text-lavender-dark hover:bg-cream-dark/80'
+              }`}
+            >
+              {CATEGORY_LABELS[cat]}
+            </button>
+          ))}
+        </div>
 
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      if (owned) {
-                        handleToggle(item.id, item.category);
-                      } else if (canAfford) {
-                        handlePurchase(item.id, item.price, item.category);
-                      } else {
-                        showToast(`코인이 부족해요! (필요 ${item.price} | 보유 ${coins}) 🪙`);
-                      }
-                    }}
-                    className={`clay p-2.5 flex flex-col items-center gap-1 text-center transition-all border-2 relative ${
-                      wasBought
-                        ? 'border-mint scale-105 bg-mint/10'
-                        : owned
-                          ? active ? 'border-mint/40 bg-mint/5' : 'border-cream-dark opacity-60'
-                          : canAfford
-                            ? `${rarity.border} hover:scale-105 cursor-pointer`
-                            : 'opacity-40 border-cream-dark cursor-not-allowed'
-                    }`}
-                  >
-                    {/* 희귀도 뱃지 */}
-                    {item.rarity !== 'common' && (
-                      <span className={`absolute -top-1.5 -right-1.5 text-[7px] px-1.5 py-0.5 rounded-full font-bold ${rarity.badge}`}>
-                        {rarity.label}
-                      </span>
-                    )}
+        {/* Items Grid */}
+        <div className="overflow-y-auto flex-1">
+          <div className="grid grid-cols-3 gap-2">
+            {categoryItems.map(item => {
+              const owned = ownedItemIds.includes(item.id);
+              const active = selectedCategory === 'theme'
+                ? theme === item.id.replace('theme_', '')
+                : activeItemIds.includes(item.id);
+              const canAfford = coins >= item.price;
+              const rarity = RARITY_STYLES[item.rarity];
+              const wasBought = justBought === item.id;
 
-                    {/* 미리보기 */}
-                    <span className="text-2xl leading-none">{ITEM_PREVIEW[item.id] || '📦'}</span>
-
-                    {/* 이름 */}
-                    <span className="text-[10px] font-semibold leading-tight">{item.name}</span>
-
-                    {/* 설명 */}
-                    <span className="text-[8px] text-lavender-dark/70 leading-tight">{item.description}</span>
-
-                    {/* 상태 표시 */}
-                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold ${
-                      owned
-                        ? active ? 'bg-mint/20 text-mint-dark' : 'bg-cream-dark text-lavender-dark'
-                        : canAfford ? 'bg-gold/20 text-gold-dark' : 'bg-cream-dark text-lavender-dark/50'
-                    }`}>
-                      {owned ? (active ? '✅ 사용중' : '꺼짐') : `🪙 ${item.price}`}
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    if (owned) {
+                      handleToggle(item.id, item.category);
+                    } else if (canAfford) {
+                      handlePurchase(item.id, item.price, item.category);
+                    } else {
+                      showToast(`코인이 부족해요! (필요 ${item.price} | 보유 ${coins}) 🪙`);
+                    }
+                  }}
+                  className={`clay p-2.5 flex flex-col items-center gap-1 text-center transition-all border-2 relative ${
+                    wasBought
+                      ? 'border-mint scale-105 bg-mint/10'
+                      : owned
+                        ? active ? 'border-mint/40 bg-mint/5' : 'border-cream-dark opacity-60'
+                        : canAfford
+                          ? `${rarity.border} hover:scale-105 cursor-pointer`
+                          : 'opacity-40 border-cream-dark cursor-not-allowed'
+                  }`}
+                >
+                  {item.rarity !== 'common' && (
+                    <span className={`absolute -top-1.5 -right-1.5 text-[7px] px-1.5 py-0.5 rounded-full font-bold ${rarity.badge}`}>
+                      {rarity.label}
                     </span>
+                  )}
 
-                    {/* 구매 완료 이펙트 */}
-                    {wasBought && (
-                      <span className="absolute inset-0 flex items-center justify-center text-2xl animate-bounce pointer-events-none">
-                        🎉
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+                  <span className="text-2xl leading-none">{ITEM_PREVIEW[item.id] || '📦'}</span>
+                  <span className="text-[10px] font-semibold leading-tight">{item.name}</span>
+                  <span className="text-[8px] text-lavender-dark/70 leading-tight">{item.description}</span>
+
+                  <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold ${
+                    owned
+                      ? active ? 'bg-mint/20 text-mint-dark' : 'bg-cream-dark text-lavender-dark'
+                      : canAfford ? 'bg-gold/20 text-gold-dark' : 'bg-cream-dark text-lavender-dark/50'
+                  }`}>
+                    {owned ? (active ? '✅ 사용중' : '꺼짐') : `🪙 ${item.price}`}
+                  </span>
+
+                  {wasBought && (
+                    <span className="absolute inset-0 flex items-center justify-center text-2xl animate-bounce pointer-events-none">
+                      🎉
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
-        ))}
+        </div>
 
-        {/* 컨페티 이펙트 */}
+        {/* Confetti */}
         {confetti.length > 0 && (
           <div className="fixed inset-0 pointer-events-none z-[60] overflow-hidden">
             {confetti.map(p => (
@@ -215,7 +227,7 @@ export default function ShopModal({ onClose }: ShopModalProps) {
           </div>
         )}
 
-        {/* 디버그: 코인 추가 (개발용) */}
+        {/* Debug */}
         {process.env.NODE_ENV === 'development' && (
           <div className="mt-4 pt-3 border-t border-cream-dark">
             <button

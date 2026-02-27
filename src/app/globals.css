@@ -340,6 +340,26 @@ html.dark input[type="range"]::-moz-range-thumb {
   animation: confetti 1.2s ease-out forwards;
 }
 
+/* ===== Scrollbar Hide ===== */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ===== Item Bounce (배치 애니메이션) ===== */
+@keyframes itemBounce {
+  0% { transform: scale(0.8) translateY(8px); opacity: 0; }
+  50% { transform: scale(1.05) translateY(-3px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.animate-item-bounce {
+  animation: itemBounce 0.4s ease-out;
+}
+
 /* ===== Safe Area (노치 대응) ===== */
 .bottom-nav {
   padding-bottom: env(safe-area-inset-bottom, 0px);

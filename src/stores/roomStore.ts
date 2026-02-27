@@ -5,6 +5,7 @@ import { persist } from 'zustand/middleware';
 import { RoomItem, RoomTheme } from '@/types';
 import { syncRoomToCloud } from '@/lib/supabase/sync';
 import { createClient } from '@/lib/supabase/client';
+import { getItemCategory, EXCLUSIVE_CATEGORIES } from '@/lib/constants';
 
 function getSupabase() { return createClient(); }
 
@@ -23,14 +24,22 @@ function debouncedSync() {
 
 // 바닥 아이템 기본 위치 (아이소메트릭 u, v 좌표)
 export const DEFAULT_ITEM_POSITIONS: Record<string, [number, number]> = {
-  plant_01: [0.78, 0.7],
-  plant_02: [0.78, 0.7],
-  plant_03: [0.78, 0.7],
-  cat_01: [0.2, 0.18],
-  cat_02: [0.2, 0.18],
-  cat_03: [0.2, 0.18],
-  light_01: [0.15, 0.55],
-  furniture_02: [0.5, 0.45], // 러그
+  // 식물
+  plant_01: [0.78, 0.7], plant_02: [0.78, 0.7], plant_03: [0.78, 0.7],
+  plant_04: [0.78, 0.7], plant_05: [0.82, 0.75], plant_06: [0.75, 0.65],
+  // 동물
+  cat_01: [0.2, 0.18], cat_02: [0.2, 0.18], cat_03: [0.2, 0.18],
+  pet_01: [0.2, 0.18], pet_02: [0.25, 0.15], pet_03: [0.2, 0.18],
+  pet_04: [0.7, 0.6],
+  // 조명
+  light_01: [0.15, 0.55], light_04: [0.85, 0.8], light_06: [0.12, 0.5],
+  // 가구
+  furniture_02: [0.5, 0.45], furniture_04: [0.15, 0.75], furniture_05: [0.8, 0.3],
+  furniture_06: [0.85, 0.85], furniture_07: [0.4, 0.3],
+  // 전자기기
+  electronics_02: [0.45, 0.48], electronics_03: [0.7, 0.25], electronics_04: [0.1, 0.4],
+  // 장식
+  decor_03: [0.85, 0.85], decor_05: [0.75, 0.35],
 };
 
 interface RoomState {
@@ -87,11 +96,19 @@ export const useRoomStore = create<RoomState>()(
       hasItem: (itemId) => get().ownedItemIds.includes(itemId),
 
       toggleItem: (itemId) => {
-        set((state) => ({
-          activeItemIds: state.activeItemIds.includes(itemId)
-            ? state.activeItemIds.filter(id => id !== itemId)
-            : [...state.activeItemIds, itemId],
-        }));
+        set((state) => {
+          const isActive = state.activeItemIds.includes(itemId);
+          if (isActive) {
+            return { activeItemIds: state.activeItemIds.filter(id => id !== itemId) };
+          }
+          // 배타적 카테고리: 같은 카테고리 기존 아이템 비활성화
+          const category = getItemCategory(itemId);
+          if (category && EXCLUSIVE_CATEGORIES.has(category)) {
+            const filtered = state.activeItemIds.filter(id => getItemCategory(id) !== category);
+            return { activeItemIds: [...filtered, itemId] };
+          }
+          return { activeItemIds: [...state.activeItemIds, itemId] };
+        });
         debouncedSync();
       },
 

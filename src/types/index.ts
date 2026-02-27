@@ -25,7 +25,7 @@ export interface Room {
 }
 
 // Shop types
-export type ItemCategory = 'plant' | 'pet' | 'lighting' | 'theme' | 'furniture';
+export type ItemCategory = 'plant' | 'pet' | 'lighting' | 'theme' | 'furniture' | 'electronics' | 'decor';
 export type ItemRarity = 'common' | 'rare' | 'legendary';
 
 export interface ShopItem {

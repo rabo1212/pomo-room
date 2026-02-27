@@ -1,226 +1,19 @@
 'use client';
 
 import { useTimerStore } from '@/stores/timerStore';
-import { useRoomStore } from '@/stores/roomStore';
+import { useRoomStore, DEFAULT_ITEM_POSITIONS } from '@/stores/roomStore';
 import { THEME_COLORS } from '@/lib/constants';
 import { memo, useEffect, useState, useRef, useCallback } from 'react';
 import { RoomTheme } from '@/types';
-
-/*
- * Isometric coordinate system:
- * Floor diamond: T(250,130) R(440,225) B(250,320) L(60,225)
- * iso(u, v): u=right axis (B→R), v=left axis (B→L)
- * Wall height: 155px
- */
-
-function iso(u: number, v: number): [number, number] {
-  return [
-    250 + u * 190 - v * 190,
-    320 - u * 95 - v * 95,
-  ];
-}
-
-// SVG 좌표 → 아이소메트릭 (u, v) 역변환
-function isoInverse(x: number, y: number): [number, number] {
-  const u = ((x - 250) / 190 + (320 - y) / 95) / 2;
-  const v = ((320 - y) / 95 - (x - 250) / 190) / 2;
-  return [
-    Math.max(0.05, Math.min(0.95, u)),
-    Math.max(0.05, Math.min(0.95, v)),
-  ];
-}
+import { iso, isoInverse, isFloorItem, WALL_ITEMS } from './renderers';
+import { renderPlant } from './renderers/plants';
+import { renderPet } from './renderers/pets';
+import { renderLight } from './renderers/lighting';
+import { renderFurniture } from './renderers/furniture';
+import { renderElectronics } from './renderers/electronics';
+import { renderDecor } from './renderers/decor';
 
 const WALL_H = 155;
-
-// 벽에 붙은 아이템 (드래그 불가)
-const WALL_ITEMS = new Set(['light_02', 'light_03', 'furniture_01', 'furniture_03']);
-
-function isFloorItem(id: string): boolean {
-  return !WALL_ITEMS.has(id) && !id.startsWith('theme_');
-}
-
-// ===== 아이템별 SVG 렌더러 =====
-
-function renderPlant(itemId: string, pos: [number, number]) {
-  const [px, py] = pos;
-
-  if (itemId === 'plant_01') {
-    return (
-      <g filter="url(#shadow)">
-        <polygon points={`${px - 8},${py - 4} ${px - 6},${py + 6} ${px + 6},${py + 6} ${px + 8},${py - 4}`} fill="#A67B50" />
-        <rect x={px - 9} y={py - 7} width="18" height="5" rx="2" fill="#8B6F47" />
-        <ellipse cx={px} cy={py - 4} rx="7" ry="3" fill="#5C3318" />
-        <ellipse cx={px} cy={py - 20} rx="7" ry="14" fill="#5DAA68" />
-        <ellipse cx={px} cy={py - 20} rx="5" ry="12" fill="#6BBF78" />
-        <line x1={px + 7} y1={py - 22} x2={px + 11} y2={py - 25} stroke="#4A9455" strokeWidth="1" />
-        <line x1={px - 7} y1={py - 18} x2={px - 11} y2={py - 21} stroke="#4A9455" strokeWidth="1" />
-        <line x1={px + 6} y1={py - 14} x2={px + 10} y2={py - 13} stroke="#4A9455" strokeWidth="1" />
-        <circle cx={px + 2} cy={py - 33} r="3" fill="#FF6B6B" />
-        <circle cx={px + 2} cy={py - 33} r="1.5" fill="#FFB347" />
-      </g>
-    );
-  }
-
-  if (itemId === 'plant_02') {
-    return (
-      <g filter="url(#shadow)">
-        <polygon points={`${px - 9},${py - 6} ${px - 7},${py + 5} ${px + 7},${py + 5} ${px + 9},${py - 6}`} fill="white" />
-        <rect x={px - 10} y={py - 9} width="20" height="5" rx="2" fill="#F0F0F0" />
-        <ellipse cx={px} cy={py - 6} rx="8" ry="3" fill="#5C3318" />
-        <line x1={px} y1={py - 8} x2={px - 3} y2={py - 30} stroke="#4A9455" strokeWidth="2.5" />
-        <line x1={px} y1={py - 8} x2={px + 5} y2={py - 28} stroke="#4A9455" strokeWidth="2" />
-        <ellipse cx={px - 10} cy={py - 30} rx="12" ry="6" fill="#5DAA68" transform={`rotate(-30 ${px - 10} ${py - 30})`} />
-        <ellipse cx={px + 10} cy={py - 28} rx="11" ry="5.5" fill="#6BBF78" transform={`rotate(25 ${px + 10} ${py - 28})`} />
-        <ellipse cx={px - 2} cy={py - 36} rx="9" ry="5" fill="#4A9455" transform={`rotate(-10 ${px - 2} ${py - 36})`} />
-      </g>
-    );
-  }
-
-  // plant_03: 벚꽃 나무
-  return (
-    <g filter="url(#shadow)">
-      <polygon points={`${px - 8},${py - 4} ${px - 6},${py + 6} ${px + 6},${py + 6} ${px + 8},${py - 4}`} fill="#FFB0B0" />
-      <rect x={px - 9} y={py - 7} width="18" height="5" rx="2" fill="#FF8A8A" />
-      <ellipse cx={px} cy={py - 4} rx="7" ry="3" fill="#5C3318" />
-      <line x1={px} y1={py - 6} x2={px} y2={py - 28} stroke="#8B6F47" strokeWidth="3" />
-      <line x1={px} y1={py - 20} x2={px - 8} y2={py - 30} stroke="#8B6F47" strokeWidth="2" />
-      <line x1={px} y1={py - 22} x2={px + 7} y2={py - 32} stroke="#8B6F47" strokeWidth="2" />
-      {[-8, 0, 7, -4, 4].map((ox, i) => (
-        <circle key={i} cx={px + ox} cy={py - 30 - i * 2.5 - Math.abs(ox)} r={3.5 - i * 0.2} fill={i % 2 === 0 ? '#FFB8C6' : '#FFC8D6'} opacity="0.85" />
-      ))}
-      <circle cx={px + 12} cy={py - 15} r="1.5" fill="#FFD0D8" opacity="0.5">
-        <animate attributeName="cy" values={`${py - 20};${py};${py - 20}`} dur="4s" repeatCount="indefinite" />
-        <animate attributeName="opacity" values="0.5;0;0.5" dur="4s" repeatCount="indefinite" />
-      </circle>
-    </g>
-  );
-}
-
-function renderCat(itemId: string, pos: [number, number]) {
-  const [cx, cy] = pos;
-  const colors = itemId === 'cat_02'
-    ? { body: '#444', head: '#444', ear: '#555', earInner: '#886666', eye: '#FFD700', paw: '#555', tail: '#444', nose: '#888' }
-    : itemId === 'cat_03'
-    ? { body: '#FFB347', head: '#F5F5F5', ear: '#F5F5F5', earInner: '#FFD5D5', eye: '#3D3D3D', paw: '#444', tail: '#FFB347', nose: '#FFB0B0' }
-    : { body: '#FFB347', head: '#FFB347', ear: '#FFB347', earInner: '#FFD5D5', eye: '#3D3D3D', paw: '#FFC875', tail: '#FFB347', nose: '#FFB0B0' };
-
-  return (
-    <g>
-      <ellipse cx={cx + 8} cy={cy + 10} rx="16" ry="5" fill="rgba(0,0,0,0.06)" />
-      <ellipse cx={cx + 8} cy={cy} rx="13" ry="8" fill={colors.body} />
-      {itemId === 'cat_03' && (
-        <>
-          <ellipse cx={cx + 3} cy={cy - 2} rx="5" ry="4" fill="#444" opacity="0.7" />
-          <ellipse cx={cx + 14} cy={cy + 1} rx="4" ry="3" fill="#FFB347" opacity="0.7" />
-        </>
-      )}
-      <circle cx={cx - 4} cy={cy - 5} r="7" fill={colors.head} />
-      {itemId === 'cat_03' && <circle cx={cx - 7} cy={cy - 6} r="3.5" fill="#FFB347" opacity="0.7" />}
-      <polygon points={`${cx - 9},${cy - 10} ${cx - 11},${cy - 18} ${cx - 4},${cy - 13}`} fill={colors.ear} />
-      <polygon points={`${cx + 1},${cy - 10} ${cx + 3},${cy - 18} ${cx - 4},${cy - 13}`} fill={colors.ear} />
-      <polygon points={`${cx - 8},${cy - 11} ${cx - 10},${cy - 16} ${cx - 5},${cy - 12}`} fill={colors.earInner} />
-      <polygon points={`${cx},${cy - 11} ${cx + 2},${cy - 16} ${cx - 3},${cy - 12}`} fill={colors.earInner} />
-      <ellipse cx={cx - 7} cy={cy - 5} rx="1.3" ry="1.6" fill={colors.eye}>
-        <animate attributeName="ry" values="1.6;0.2;1.6" keyTimes="0;0.025;0.05" dur="5s" repeatCount="indefinite" />
-      </ellipse>
-      <ellipse cx={cx - 1} cy={cy - 5} rx="1.3" ry="1.6" fill={colors.eye}>
-        <animate attributeName="ry" values="1.6;0.2;1.6" keyTimes="0;0.025;0.05" dur="5s" repeatCount="indefinite" />
-      </ellipse>
-      <ellipse cx={cx - 4} cy={cy - 2} rx="1" ry="0.6" fill={colors.nose} />
-      <path d={`M${cx + 21},${cy - 2} C${cx + 26},${cy - 8} ${cx + 28},${cy - 14} ${cx + 25},${cy - 17}`} fill="none" stroke={colors.tail} strokeWidth="2.5" strokeLinecap="round">
-        <animate attributeName="d" values={`M${cx + 21},${cy - 2} C${cx + 26},${cy - 8} ${cx + 28},${cy - 14} ${cx + 25},${cy - 17};M${cx + 21},${cy - 2} C${cx + 27},${cy - 6} ${cx + 30},${cy - 11} ${cx + 28},${cy - 14};M${cx + 21},${cy - 2} C${cx + 26},${cy - 8} ${cx + 28},${cy - 14} ${cx + 25},${cy - 17}`} dur="3s" repeatCount="indefinite" />
-      </path>
-      <ellipse cx={cx} cy={cy + 6} rx="3" ry="2" fill={colors.paw} />
-      <ellipse cx={cx + 8} cy={cy + 6} rx="3" ry="2" fill={colors.paw} />
-    </g>
-  );
-}
-
-function renderLight(itemId: string, pos: [number, number], wallH: number) {
-  if (itemId === 'light_01') {
-    const [lx, ly] = pos;
-    return (
-      <g key="light" filter="url(#shadow)">
-        <line x1={lx} y1={ly} x2={lx} y2={ly - 50} stroke="#FFB347" strokeWidth="2.5" />
-        <ellipse cx={lx} cy={ly} rx="7" ry="3" fill="#E89A2E" />
-        <polygon points={`${lx - 10},${ly - 58} ${lx + 10},${ly - 62} ${lx + 8},${ly - 48} ${lx - 8},${ly - 44}`} fill="#FFB347" opacity="0.85" />
-        <ellipse cx={lx} cy={ly - 8} rx="18" ry="8" fill="#FFB347" opacity="0.06" />
-      </g>
-    );
-  }
-
-  if (itemId === 'light_02') {
-    const bulbs: [number, number, string][] = [];
-    for (let i = 0; i < 7; i++) {
-      const t = 0.1 + i * 0.12;
-      const x = 60 + t * 190;
-      const yTop = (225 - wallH) - t * 95;
-      const yBot = 225 - t * 95;
-      const by = yTop + (yBot - yTop) * 0.12;
-      const colors = ['#FF6B6B', '#FFB347', '#7ECEC1', '#B8A9C9', '#FF8A8A', '#FFD700', '#7FB3D8'];
-      bulbs.push([x, by, colors[i]]);
-    }
-    return (
-      <g key="light">
-        <path d={`M${bulbs[0][0]},${bulbs[0][1]} ${bulbs.map(([x, y]) => `L${x},${y}`).join(' ')}`} fill="none" stroke="#666" strokeWidth="0.8" opacity="0.5" />
-        {bulbs.map(([x, y, color], i) => (
-          <g key={i}>
-            <circle cx={x} cy={y + 4} r="3" fill={color} opacity="0.8">
-              <animate attributeName="opacity" values="0.6;1;0.6" dur={`${1.5 + i * 0.3}s`} repeatCount="indefinite" />
-            </circle>
-            <circle cx={x} cy={y + 4} r="5" fill={color} opacity="0.1">
-              <animate attributeName="r" values="5;8;5" dur={`${1.5 + i * 0.3}s`} repeatCount="indefinite" />
-            </circle>
-          </g>
-        ))}
-      </g>
-    );
-  }
-
-  // light_03: 네온 사인
-  const t = 0.6;
-  const nx = 250 + t * 190;
-  const nyCeil = (130 - wallH) + t * 95;
-  const nyFloor = 130 + t * 95;
-  const ny = nyCeil + (nyFloor - nyCeil) * 0.18;
-  return (
-    <g key="light">
-      <ellipse cx={nx} cy={ny + 8} rx="28" ry="14" fill="#FF6B6B" opacity="0.06">
-        <animate attributeName="opacity" values="0.04;0.1;0.04" dur="2s" repeatCount="indefinite" />
-      </ellipse>
-      <text x={nx} y={ny + 10} textAnchor="middle" fontSize="13" fontFamily="sans-serif" fontWeight="bold" fill="#FF6B6B" opacity="0.9">
-        FOCUS
-        <animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite" />
-      </text>
-    </g>
-  );
-}
-
-function renderPoster(wallH: number) {
-  const t1 = 0.55, t2 = 0.72;
-  const x1 = 250 + t1 * 190, x2 = 250 + t2 * 190;
-  const yCeil1 = (130 - wallH) + t1 * 95, yCeil2 = (130 - wallH) + t2 * 95;
-  const yFloor1 = 130 + t1 * 95, yFloor2 = 130 + t2 * 95;
-  const fT1 = yCeil1 + (yFloor1 - yCeil1) * 0.15;
-  const fB1 = yCeil1 + (yFloor1 - yCeil1) * 0.55;
-  const fT2 = yCeil2 + (yFloor2 - yCeil2) * 0.15;
-  const fB2 = yCeil2 + (yFloor2 - yCeil2) * 0.55;
-  const cx = (x1 + x2) / 2, cy = (fT1 + fT2 + fB1 + fB2) / 4;
-
-  return (
-    <g key="poster" filter="url(#shadow)">
-      <polygon points={`${x1},${fT1} ${x2},${fT2} ${x2},${fB2} ${x1},${fB1}`} fill="#FFF5E8" />
-      <polygon points={`${x1},${fT1} ${x2},${fT2} ${x2},${fB2} ${x1},${fB1}`} fill="none" stroke="#E8DDD0" strokeWidth="1.5" />
-      <text x={cx} y={cy - 4} textAnchor="middle" fontSize="14">⭐</text>
-      <text x={cx} y={cy + 10} textAnchor="middle" fontSize="5.5" fill="#FF6B6B" fontWeight="bold">힘내!</text>
-    </g>
-  );
-}
-
-// ===== 러그 렌더러 =====
-function renderRug(pos: [number, number]) {
-  return <ellipse cx={pos[0]} cy={pos[1]} rx="62" ry="28" fill="#B8A9C9" opacity="0.3" />;
-}
 
 export default memo(function IsometricRoom() {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -231,14 +24,12 @@ export default memo(function IsometricRoom() {
   const setItemPosition = useRoomStore((s) => s.setItemPosition);
   const [mounted, setMounted] = useState(false);
 
-  // 드래그 상태
   const [dragging, setDragging] = useState<string | null>(null);
   const [dragPos, setDragPos] = useState<[number, number] | null>(null);
   const dragStartRef = useRef<{ itemId: string; startU: number; startV: number; startSvgX: number; startSvgY: number } | null>(null);
 
   useEffect(() => { setMounted(true); }, []);
 
-  // SVG 좌표 변환
   const getSvgPoint = useCallback((clientX: number, clientY: number): [number, number] => {
     const svg = svgRef.current;
     if (!svg) return [0, 0];
@@ -251,50 +42,37 @@ export default memo(function IsometricRoom() {
     return [svgP.x, svgP.y];
   }, []);
 
-  // 아이템 위치 가져오기
   const getPos = useCallback((itemId: string): [number, number] => {
     const saved = itemPositions[itemId];
     if (saved) return saved;
-    const defaults: Record<string, [number, number]> = {
-      plant_01: [0.78, 0.7], plant_02: [0.78, 0.7], plant_03: [0.78, 0.7],
-      cat_01: [0.2, 0.18], cat_02: [0.2, 0.18], cat_03: [0.2, 0.18],
-      light_01: [0.15, 0.55], furniture_02: [0.5, 0.45],
-    };
-    return defaults[itemId] || [0.5, 0.5];
+    return DEFAULT_ITEM_POSITIONS[itemId] || [0.5, 0.5];
   }, [itemPositions]);
 
-  // 드래그 시작
   const handleDragStart = useCallback((itemId: string, e: React.MouseEvent | React.TouchEvent) => {
     if (!isFloorItem(itemId)) return;
     e.preventDefault();
     e.stopPropagation();
-
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     const [svgX, svgY] = getSvgPoint(clientX, clientY);
     const [u, v] = getPos(itemId);
-
     dragStartRef.current = { itemId, startU: u, startV: v, startSvgX: svgX, startSvgY: svgY };
     setDragging(itemId);
     setDragPos(iso(u, v));
   }, [getSvgPoint, getPos]);
 
-  // 드래그 중
   const handleDragMove = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (!dragging || !dragStartRef.current) return;
     e.preventDefault();
-
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     const [svgX, svgY] = getSvgPoint(clientX, clientY);
-
     const dx = svgX - dragStartRef.current.startSvgX;
     const dy = svgY - dragStartRef.current.startSvgY;
     const [origX, origY] = iso(dragStartRef.current.startU, dragStartRef.current.startV);
     setDragPos([origX + dx, origY + dy]);
   }, [dragging, getSvgPoint]);
 
-  // 드래그 끝
   const handleDragEnd = useCallback(() => {
     if (!dragging || !dragPos || !dragStartRef.current) {
       setDragging(null);
@@ -302,7 +80,6 @@ export default memo(function IsometricRoom() {
       dragStartRef.current = null;
       return;
     }
-
     const [u, v] = isoInverse(dragPos[0], dragPos[1]);
     setItemPosition(dragging, u, v);
     setDragging(null);
@@ -310,16 +87,7 @@ export default memo(function IsometricRoom() {
     dragStartRef.current = null;
   }, [dragging, dragPos, setItemPosition]);
 
-  // 아이템별 활성 ID
-  const activePlant = activeItemIds.find(id => id.startsWith('plant_'));
-  const activeCat = activeItemIds.find(id => id.startsWith('cat_'));
-  const activeLight = activeItemIds.find(id => id.startsWith('light_'));
-  const hasBookshelf = activeItemIds.includes('furniture_01');
-  const hasRug = activeItemIds.includes('furniture_02');
-  const hasPoster = activeItemIds.includes('furniture_03');
-
   const tc = THEME_COLORS[theme] || THEME_COLORS.default;
-
   const hour = new Date().getHours();
   const isNight = hour >= 21 || hour < 6;
   const isEvening = hour >= 17 && hour < 21;
@@ -339,11 +107,21 @@ export default memo(function IsometricRoom() {
   const deskH = 18;
   const charFeet = iso(0.42, 0.22);
 
-  // 드래그 중인 아이템의 화면 좌표
   const getDragOrStoredPos = (itemId: string): [number, number] => {
     if (dragging === itemId && dragPos) return dragPos;
     const [u, v] = getPos(itemId);
     return iso(u, v);
+  };
+
+  // 아이템 렌더 함수 — 카테고리별 렌더러 라우팅
+  const renderItem = (itemId: string, pos: [number, number]) => {
+    if (itemId.startsWith('plant_')) return renderPlant(itemId, pos);
+    if (itemId.startsWith('cat_') || itemId.startsWith('pet_')) return renderPet(itemId, pos);
+    if (itemId.startsWith('light_')) return renderLight(itemId, pos, WALL_H);
+    if (itemId.startsWith('furniture_')) return renderFurniture(itemId, pos, WALL_H);
+    if (itemId.startsWith('electronics_')) return renderElectronics(itemId, pos);
+    if (itemId.startsWith('decor_')) return renderDecor(itemId, pos, WALL_H);
+    return null;
   };
 
   // 드래그 가능 아이템 래퍼
@@ -357,13 +135,26 @@ export default memo(function IsometricRoom() {
         opacity={isDragging ? 0.7 : 1}
       >
         {children}
-        {/* 드래그 중 힌트 원 */}
         {isDragging && dragPos && (
           <circle cx={dragPos[0]} cy={dragPos[1]} r="20" fill="rgba(126,206,193,0.15)" stroke="#7ECEC1" strokeWidth="1" strokeDasharray="4 2" />
         )}
       </g>
     );
   };
+
+  // 활성 아이템 분류
+  const wallItems = activeItemIds.filter(id => WALL_ITEMS.has(id));
+  const floorItems = activeItemIds.filter(id => isFloorItem(id));
+
+  // 바닥 아이템 깊이 정렬 (u+v 큰 것 = 뒤, 작은 것 = 앞 → 먼저 렌더)
+  const sortedFloorItems = [...floorItems].sort((a, b) => {
+    const [au, av] = getPos(a);
+    const [bu, bv] = getPos(b);
+    return (au + av) - (bu + bv);
+  });
+
+  // 데스크/모니터/캐릭터의 깊이
+  const deskDepth = 0.3 + 0.35; // desk u=0.3~0.65, v=0.35~0.6 → 가장 앞면 u=0.3, v=0.35
 
   return (
     <div className="room-container" style={{ width: 500, height: 400 }}>
@@ -385,6 +176,15 @@ export default memo(function IsometricRoom() {
           <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
             <feDropShadow dx="1" dy="2" stdDeviation="2.5" floodOpacity="0.12" />
           </filter>
+          <filter id="softShadow" x="-20%" y="-20%" width="150%" height="150%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="4" />
+            <feOffset dx="2" dy="3" />
+            <feComponentTransfer><feFuncA type="linear" slope="0.1" /></feComponentTransfer>
+            <feMerge>
+              <feMergeNode />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
           <linearGradient id="leftWallGrad" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor={tc.wallLeft[0]} />
             <stop offset="100%" stopColor={tc.wallLeft[1]} />
@@ -393,15 +193,52 @@ export default memo(function IsometricRoom() {
             <stop offset="0%" stopColor={tc.wallRight[0]} />
             <stop offset="100%" stopColor={tc.wallRight[1]} />
           </linearGradient>
+          <linearGradient id="mirrorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="white" stopOpacity="0.4" />
+            <stop offset="50%" stopColor="#B0D8E8" stopOpacity="0.2" />
+            <stop offset="100%" stopColor="white" stopOpacity="0.1" />
+          </linearGradient>
+          {/* 바닥 타일 패턴 */}
+          <pattern id="floorTile" width="38" height="19" patternUnits="userSpaceOnUse" patternTransform="skewY(-26.57) scale(1,0.5)">
+            <rect width="38" height="19" fill="transparent" />
+            <rect x="0" y="0" width="18" height="18" rx="1" fill="rgba(0,0,0,0.015)" />
+            <rect x="19" y="0" width="18" height="18" rx="1" fill="rgba(255,255,255,0.02)" />
+          </pattern>
+          {/* 앰비언트 글로우 */}
+          <radialGradient id="ambientGlow" cx="50%" cy="40%" r="50%">
+            <stop offset="0%" stopColor="#FFB347" stopOpacity="0.06" />
+            <stop offset="100%" stopColor="#FFB347" stopOpacity="0" />
+          </radialGradient>
         </defs>
 
         {/* ========== ROOM SHELL ========== */}
+        {/* 왼쪽 벽 */}
         <polygon points={`60,225 60,${225 - WALL_H} 250,${130 - WALL_H} 250,130`} fill="url(#leftWallGrad)" />
+        {/* 왼쪽 벽 패널 라인 */}
+        {[0.25, 0.5, 0.75].map((t, i) => {
+          const x = 60 + t * 190;
+          const yTop = (225 - WALL_H) - t * 95;
+          const yBot = 225 - t * 95;
+          return <line key={`wl${i}`} x1={x} y1={yTop} x2={x} y2={yBot} stroke="rgba(0,0,0,0.03)" strokeWidth="0.5" />;
+        })}
         <polygon points="60,225 60,218 250,123 250,130" fill={tc.baseboard[0]} />
-        <polygon points={`250,130 250,${130 - WALL_H} 440,${225 - WALL_H} 440,225`} fill="url(#rightWallGrad)" />
-        <polygon points="250,123 250,130 440,225 440,218" fill={tc.baseboard[1]} />
-        <polygon points="250,130 440,225 250,320 60,225" fill={tc.floor} />
 
+        {/* 오른쪽 벽 */}
+        <polygon points={`250,130 250,${130 - WALL_H} 440,${225 - WALL_H} 440,225`} fill="url(#rightWallGrad)" />
+        {/* 오른쪽 벽 패널 라인 */}
+        {[0.25, 0.5, 0.75].map((t, i) => {
+          const x = 250 + t * 190;
+          const yTop = (130 - WALL_H) + t * 95;
+          const yBot = 130 + t * 95;
+          return <line key={`wr${i}`} x1={x} y1={yTop} x2={x} y2={yBot} stroke="rgba(0,0,0,0.03)" strokeWidth="0.5" />;
+        })}
+        <polygon points="250,123 250,130 440,225 440,218" fill={tc.baseboard[1]} />
+
+        {/* 바닥 */}
+        <polygon points="250,130 440,225 250,320 60,225" fill={tc.floor} />
+        {/* 바닥 타일 오버레이 */}
+        <polygon points="250,130 440,225 250,320 60,225" fill="url(#floorTile)" opacity="0.5" />
+        {/* 바닥 그레인 라인 */}
         {[0.15, 0.3, 0.45, 0.6, 0.75, 0.9].map((t, i) => {
           const [x1, y1] = iso(t, 0);
           const [x2, y2] = iso(t, 1);
@@ -413,6 +250,7 @@ export default memo(function IsometricRoom() {
           return <line key={`fg2${i}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={tc.floorGrain} strokeWidth="0.4" opacity="0.2" />;
         })}
 
+        {/* 우주 테마 별 */}
         {theme === 'space' && [
           [90, 90], [130, 60], [180, 45], [320, 50], [370, 75], [410, 100],
           [100, 140], [150, 100], [200, 55], [300, 30], [350, 55], [400, 130],
@@ -422,9 +260,13 @@ export default memo(function IsometricRoom() {
           </circle>
         ))}
 
+        {/* 코너 라인 */}
         <line x1="250" y1={130 - WALL_H} x2="250" y2="130" stroke={tc.corner} strokeWidth="1.5" />
         <line x1="60" y1={225 - WALL_H} x2="60" y2="225" stroke={tc.corner} strokeWidth="1" />
         <line x1="440" y1={225 - WALL_H} x2="440" y2="225" stroke={tc.corner} strokeWidth="1" />
+
+        {/* 앰비언트 글로우 */}
+        <rect x="0" y="0" width="500" height="400" fill="url(#ambientGlow)" />
 
         {/* ========== WINDOW ========== */}
         {(() => {
@@ -455,7 +297,7 @@ export default memo(function IsometricRoom() {
           );
         })()}
 
-        {/* ========== PICTURE FRAME ========== */}
+        {/* ========== PICTURE FRAME (고정 장식) ========== */}
         {(() => {
           const t1 = 0.25, t2 = 0.45;
           const x1 = 250 + t1 * 190, x2 = 250 + t2 * 190;
@@ -474,18 +316,23 @@ export default memo(function IsometricRoom() {
           );
         })()}
 
-        {/* ========== POSTER ========== */}
-        {hasPoster && renderPoster(WALL_H)}
+        {/* ========== WALL ITEMS (드래그 불가) ========== */}
+        {wallItems.map(itemId => (
+          <g key={itemId}>{renderItem(itemId, [0, 0])}</g>
+        ))}
 
-        {/* ========== WALL LIGHTS ========== */}
-        {activeLight && WALL_ITEMS.has(activeLight) && renderLight(activeLight, [0, 0], WALL_H)}
-
-        {/* ========== RUG (draggable) ========== */}
-        {hasRug && (
-          <DraggableItem itemId="furniture_02">
-            {renderRug(getDragOrStoredPos('furniture_02'))}
-          </DraggableItem>
-        )}
+        {/* ========== FLOOR ITEMS (깊이 정렬, 데스크 뒤) ========== */}
+        {sortedFloorItems
+          .filter(id => {
+            const [u, v] = getPos(id);
+            return (u + v) <= deskDepth;
+          })
+          .map(itemId => (
+            <DraggableItem key={itemId} itemId={itemId}>
+              {renderItem(itemId, getDragOrStoredPos(itemId))}
+            </DraggableItem>
+          ))
+        }
 
         {/* ========== DESK ========== */}
         <g filter="url(#shadow)">
@@ -538,49 +385,18 @@ export default memo(function IsometricRoom() {
           );
         })()}
 
-        {/* ========== BOOKSHELF ========== */}
-        {hasBookshelf && (() => {
-          const bx = 365, by = 140;
-          return (
-            <g filter="url(#shadow)">
-              <rect x={bx} y={by} width="35" height="68" rx="1" fill="#C4956A" />
-              <polygon points={`${bx + 35},${by} ${bx + 55},${by - 10} ${bx + 55},${by + 58} ${bx + 35},${by + 68}`} fill="#A67B50" />
-              <polygon points={`${bx},${by} ${bx + 35},${by} ${bx + 55},${by - 10} ${bx + 20},${by - 10}`} fill="#D4A574" />
-              <line x1={bx + 1} y1={by + 33} x2={bx + 34} y2={by + 33} stroke="#A67B50" strokeWidth="1.5" />
-              <rect x={bx + 3} y={by + 5} width="5" height="24" rx="1" fill="#FF6B6B" />
-              <rect x={bx + 9} y={by + 7} width="5" height="22" rx="1" fill="#7ECEC1" />
-              <rect x={bx + 15} y={by + 4} width="4" height="25" rx="1" fill="#B8A9C9" />
-              <rect x={bx + 20} y={by + 8} width="5" height="21" rx="1" fill="#FFB347" />
-              <rect x={bx + 26} y={by + 6} width="5" height="23" rx="1" fill="#7FB3D8" />
-              <rect x={bx + 3} y={by + 38} width="5" height="24" rx="1" fill="#9A87B3" />
-              <rect x={bx + 9} y={by + 40} width="5" height="22" rx="1" fill="#E85555" />
-              <rect x={bx + 15} y={by + 37} width="5" height="25" rx="1" fill="#5BB8A8" />
-              <rect x={bx + 21} y={by + 39} width="5" height="23" rx="1" fill="#FFC875" />
-              <rect x={bx + 27} y={by + 41} width="5" height="21" rx="1" fill="#D0C4DD" />
-            </g>
-          );
-        })()}
-
-        {/* ========== FLOOR LAMP (draggable) ========== */}
-        {activeLight === 'light_01' && (
-          <DraggableItem itemId="light_01">
-            {renderLight('light_01', getDragOrStoredPos('light_01'), WALL_H)}
-          </DraggableItem>
-        )}
-
-        {/* ========== PLANT (draggable) ========== */}
-        {activePlant && (
-          <DraggableItem itemId={activePlant}>
-            {renderPlant(activePlant, getDragOrStoredPos(activePlant))}
-          </DraggableItem>
-        )}
-
-        {/* ========== CAT (draggable) ========== */}
-        {activeCat && (
-          <DraggableItem itemId={activeCat}>
-            {renderCat(activeCat, getDragOrStoredPos(activeCat))}
-          </DraggableItem>
-        )}
+        {/* ========== FLOOR ITEMS (데스크 앞) ========== */}
+        {sortedFloorItems
+          .filter(id => {
+            const [u, v] = getPos(id);
+            return (u + v) > deskDepth;
+          })
+          .map(itemId => (
+            <DraggableItem key={itemId} itemId={itemId}>
+              {renderItem(itemId, getDragOrStoredPos(itemId))}
+            </DraggableItem>
+          ))
+        }
 
         {/* ========== CHARACTER ========== */}
         <g>
