@@ -220,6 +220,17 @@ html.dark .skeleton {
   font-variant-numeric: tabular-nums;
 }
 
+/* ===== Pixel Art Room Style ===== */
+.room-container {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.room-container svg {
+  shape-rendering: crispEdges;
+}
+
 /* ===== Responsive Room ===== */
 @media (max-width: 480px) {
   .room-container {

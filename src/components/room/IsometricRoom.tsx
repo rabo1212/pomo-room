@@ -12,8 +12,11 @@ import { renderLight } from './renderers/lighting';
 import { renderFurniture } from './renderers/furniture';
 import { renderElectronics } from './renderers/electronics';
 import { renderDecor } from './renderers/decor';
+import { renderAllZones, ZONE_POSITIONS, ZONE_BUBBLES } from './renderers/zones';
+import { TimerStatus } from '@/types';
 
 const WALL_H = 155;
+const LERP_SPEED = 0.04; // 이동 속도 (0~1, 높을수록 빠름)
 
 export default memo(function IsometricRoom() {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -28,7 +31,53 @@ export default memo(function IsometricRoom() {
   const [dragPos, setDragPos] = useState<[number, number] | null>(null);
   const dragStartRef = useRef<{ itemId: string; startU: number; startV: number; startSvgX: number; startSvgY: number } | null>(null);
 
+  // 캐릭터 이동 상태
+  const [charU, setCharU] = useState(ZONE_POSITIONS.idle[0]);
+  const [charV, setCharV] = useState(ZONE_POSITIONS.idle[1]);
+  const [isWalking, setIsWalking] = useState(false);
+  const targetRef = useRef<[number, number]>(ZONE_POSITIONS.idle);
+  const animFrameRef = useRef<number>(0);
+  const walkFrameRef = useRef(0);
+
   useEffect(() => { setMounted(true); }, []);
+
+  // 타이머 상태 변화 → 캐릭터 목표 위치 설정
+  useEffect(() => {
+    const target = ZONE_POSITIONS[status as TimerStatus] || ZONE_POSITIONS.idle;
+    targetRef.current = target;
+    setIsWalking(true);
+  }, [status]);
+
+  // 캐릭터 이동 애니메이션 루프
+  useEffect(() => {
+    let running = true;
+    const animate = () => {
+      if (!running) return;
+      const [tu, tv] = targetRef.current;
+      setCharU(prev => {
+        const diff = tu - prev;
+        if (Math.abs(diff) < 0.005) return tu;
+        return prev + diff * LERP_SPEED;
+      });
+      setCharV(prev => {
+        const diff = tv - prev;
+        if (Math.abs(diff) < 0.005) return tv;
+        return prev + diff * LERP_SPEED;
+      });
+      walkFrameRef.current += 1;
+      animFrameRef.current = requestAnimationFrame(animate);
+    };
+    animFrameRef.current = requestAnimationFrame(animate);
+    return () => { running = false; cancelAnimationFrame(animFrameRef.current); };
+  }, []);
+
+  // 도착 감지
+  useEffect(() => {
+    const [tu, tv] = targetRef.current;
+    if (Math.abs(charU - tu) < 0.01 && Math.abs(charV - tv) < 0.01) {
+      setIsWalking(false);
+    }
+  }, [charU, charV]);
 
   const getSvgPoint = useCallback((clientX: number, clientY: number): [number, number] => {
     const svg = svgRef.current;
@@ -93,10 +142,8 @@ export default memo(function IsometricRoom() {
   const isEvening = hour >= 17 && hour < 21;
   const windowFill = isNight ? '#2C3E6B' : isEvening ? '#FFD0A0' : '#AED8F0';
 
-  const bubbleText = status === 'idle' ? '💤 zzZ...'
-    : status === 'focus' ? '🔥 집중!'
-    : (status === 'short_break' || status === 'long_break') ? '☕ 쉬는중~'
-    : '🎉 완료!';
+  const bubbleText = isWalking ? '🚶 이동중...'
+    : ZONE_BUBBLES[status as TimerStatus] || '출근!';
 
   if (!mounted) return <div style={{ width: 500, height: 400 }} />;
 
@@ -105,7 +152,7 @@ export default memo(function IsometricRoom() {
   const deskBR = iso(0.65, 0.6);
   const deskBL = iso(0.3, 0.6);
   const deskH = 18;
-  const charFeet = iso(0.42, 0.22);
+  const charFeet = iso(charU, charV);
 
   const getDragOrStoredPos = (itemId: string): [number, number] => {
     if (dragging === itemId && dragPos) return dragPos;
@@ -166,6 +213,7 @@ export default memo(function IsometricRoom() {
         xmlns="http://www.w3.org/2000/svg"
         role="img"
         aria-label="아이소메트릭 방. 아이템을 드래그하여 배치할 수 있습니다"
+        shapeRendering="crispEdges"
         onMouseMove={handleDragMove}
         onMouseUp={handleDragEnd}
         onMouseLeave={handleDragEnd}
@@ -238,17 +286,20 @@ export default memo(function IsometricRoom() {
         <polygon points="250,130 440,225 250,320 60,225" fill={tc.floor} />
         {/* 바닥 타일 오버레이 */}
         <polygon points="250,130 440,225 250,320 60,225" fill="url(#floorTile)" opacity="0.5" />
-        {/* 바닥 그레인 라인 */}
-        {[0.15, 0.3, 0.45, 0.6, 0.75, 0.9].map((t, i) => {
+        {/* 바닥 그레인 라인 (픽셀 격자) */}
+        {[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].map((t, i) => {
           const [x1, y1] = iso(t, 0);
           const [x2, y2] = iso(t, 1);
-          return <line key={`fg${i}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={tc.floorGrain} strokeWidth="0.6" opacity="0.35" />;
+          return <line key={`fg${i}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={tc.floorGrain} strokeWidth="0.8" opacity="0.3" shapeRendering="crispEdges" />;
         })}
-        {[0.2, 0.4, 0.6, 0.8].map((t, i) => {
+        {[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].map((t, i) => {
           const [x1, y1] = iso(0, t);
           const [x2, y2] = iso(1, t);
-          return <line key={`fg2${i}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={tc.floorGrain} strokeWidth="0.4" opacity="0.2" />;
+          return <line key={`fg2${i}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={tc.floorGrain} strokeWidth="0.8" opacity="0.3" shapeRendering="crispEdges" />;
         })}
+
+        {/* ========== 구역 배경 (5구역 오피스) ========== */}
+        {renderAllZones()}
 
         {/* 우주 테마 별 */}
         {theme === 'space' && [
@@ -399,55 +450,90 @@ export default memo(function IsometricRoom() {
         }
 
         {/* ========== CHARACTER ========== */}
-        <g>
-          {status === 'idle' && (
+        <g shapeRendering="crispEdges">
+          {/* 상태별 애니메이션 (도착 후에만) */}
+          {!isWalking && status === 'idle' && (
             <animateTransform attributeName="transform" type="translate" values="0,0;0,-3;0,0" dur="3s" repeatCount="indefinite" />
           )}
-          {status === 'focus' && (
+          {!isWalking && status === 'focus' && (
             <animateTransform attributeName="transform" type="translate" values="0,0;0,-1;0,0;0,-1;0,0" dur="0.8s" repeatCount="indefinite" />
           )}
-          {(status === 'short_break' || status === 'long_break') && (
+          {!isWalking && (status === 'short_break' || status === 'long_break') && (
             <animateTransform attributeName="transform" type="translate" values="0,0;0,-4;0,0" dur="3s" repeatCount="indefinite" />
           )}
-          {status === 'complete' && (
+          {!isWalking && status === 'complete' && (
             <animateTransform attributeName="transform" type="translate" values="0,0;0,-14;0,-6;0,0" dur="1s" repeatCount="indefinite" />
           )}
+          {/* 걷기 바운스 */}
+          {isWalking && (
+            <animateTransform attributeName="transform" type="translate" values="0,0;0,-2;0,0" dur="0.35s" repeatCount="indefinite" />
+          )}
 
+          {/* 그림자 */}
           <ellipse cx={charFeet[0]} cy={charFeet[1] + 2} rx="14" ry="5" fill="rgba(0,0,0,0.08)" />
-          <rect x={charFeet[0] - 28} y={charFeet[1] - 88} width="56" height="18" rx="9" fill="white" filter="url(#shadow)" />
-          <polygon points={`${charFeet[0] - 3},${charFeet[1] - 70} ${charFeet[0]},${charFeet[1] - 66} ${charFeet[0] + 3},${charFeet[1] - 70}`} fill="white" />
-          <text x={charFeet[0]} y={charFeet[1] - 76} textAnchor="middle" fontSize="9.5" fontFamily="sans-serif">{bubbleText}</text>
 
-          <rect x={charFeet[0] - 9} y={charFeet[1] - 16} width="8" height="14" rx="3" fill="#6B8FAD" />
-          <rect x={charFeet[0] + 1} y={charFeet[1] - 16} width="8" height="14" rx="3" fill="#5E7F9C" />
-          <rect x={charFeet[0] - 10} y={charFeet[1] - 3} width="10" height="5" rx="2.5" fill="#FF6B6B" />
-          <rect x={charFeet[0] + 1} y={charFeet[1] - 3} width="10" height="5" rx="2.5" fill="#E85555" />
+          {/* 말풍선 */}
+          <rect x={charFeet[0] - 28} y={charFeet[1] - 88} width="56" height="18" rx="3" fill="white" stroke="#3D3D3D" strokeWidth="1" />
+          <polygon points={`${charFeet[0] - 3},${charFeet[1] - 70} ${charFeet[0]},${charFeet[1] - 66} ${charFeet[0] + 3},${charFeet[1] - 70}`} fill="white" stroke="#3D3D3D" strokeWidth="1" />
+          <text x={charFeet[0]} y={charFeet[1] - 76} textAnchor="middle" fontSize="9.5" fontFamily="'Press Start 2P', 'Courier New', monospace" fill="#3D3D3D">{bubbleText}</text>
 
+          {/* 다리 — 걷기 시 교차 애니메이션 */}
+          {isWalking ? (
+            <>
+              <rect x={charFeet[0] - 9} y={charFeet[1] - 16} width="8" height="14" rx="3" fill="#6B8FAD" stroke="#3D3D3D" strokeWidth="1">
+                <animateTransform attributeName="transform" type="rotate" values={`-12 ${charFeet[0] - 5} ${charFeet[1] - 16};12 ${charFeet[0] - 5} ${charFeet[1] - 16};-12 ${charFeet[0] - 5} ${charFeet[1] - 16}`} dur="0.35s" repeatCount="indefinite" />
+              </rect>
+              <rect x={charFeet[0] + 1} y={charFeet[1] - 16} width="8" height="14" rx="3" fill="#5E7F9C" stroke="#3D3D3D" strokeWidth="1">
+                <animateTransform attributeName="transform" type="rotate" values={`12 ${charFeet[0] + 5} ${charFeet[1] - 16};-12 ${charFeet[0] + 5} ${charFeet[1] - 16};12 ${charFeet[0] + 5} ${charFeet[1] - 16}`} dur="0.35s" repeatCount="indefinite" />
+              </rect>
+              <rect x={charFeet[0] - 10} y={charFeet[1] - 3} width="10" height="5" rx="2.5" fill="#FF6B6B" stroke="#3D3D3D" strokeWidth="0.8" />
+              <rect x={charFeet[0] + 1} y={charFeet[1] - 3} width="10" height="5" rx="2.5" fill="#E85555" stroke="#3D3D3D" strokeWidth="0.8" />
+            </>
+          ) : (
+            <>
+              <rect x={charFeet[0] - 9} y={charFeet[1] - 16} width="8" height="14" rx="3" fill="#6B8FAD" stroke="#3D3D3D" strokeWidth="1" />
+              <rect x={charFeet[0] + 1} y={charFeet[1] - 16} width="8" height="14" rx="3" fill="#5E7F9C" stroke="#3D3D3D" strokeWidth="1" />
+              <rect x={charFeet[0] - 10} y={charFeet[1] - 3} width="10" height="5" rx="2.5" fill="#FF6B6B" stroke="#3D3D3D" strokeWidth="0.8" />
+              <rect x={charFeet[0] + 1} y={charFeet[1] - 3} width="10" height="5" rx="2.5" fill="#E85555" stroke="#3D3D3D" strokeWidth="0.8" />
+            </>
+          )}
+
+          {/* 몸통 — 픽셀 아웃라인 */}
           <rect x={charFeet[0] - 12} y={charFeet[1] - 42} width="24" height="28" rx="5" fill={
             status === 'focus' ? '#7ECEC1' :
             status === 'short_break' || status === 'long_break' ? '#FFB347' :
             status === 'complete' ? '#FF8A8A' : '#B8A9C9'
-          } />
+          } stroke="#3D3D3D" strokeWidth="1" />
 
-          {status === 'focus' ? (
+          {/* 팔 — 걷기 시 교차 */}
+          {isWalking ? (
             <>
-              <rect x={charFeet[0] - 18} y={charFeet[1] - 38} width="7" height="20" rx="3.5" fill="#FFD5C2" transform={`rotate(15 ${charFeet[0] - 14} ${charFeet[1] - 38})`} />
-              <rect x={charFeet[0] + 11} y={charFeet[1] - 38} width="7" height="20" rx="3.5" fill="#FFD5C2" transform={`rotate(-15 ${charFeet[0] + 14} ${charFeet[1] - 38})`} />
+              <rect x={charFeet[0] - 17} y={charFeet[1] - 38} width="7" height="20" rx="3.5" fill="#FFD5C2" stroke="#3D3D3D" strokeWidth="0.8">
+                <animateTransform attributeName="transform" type="rotate" values={`15 ${charFeet[0] - 14} ${charFeet[1] - 38};-15 ${charFeet[0] - 14} ${charFeet[1] - 38};15 ${charFeet[0] - 14} ${charFeet[1] - 38}`} dur="0.35s" repeatCount="indefinite" />
+              </rect>
+              <rect x={charFeet[0] + 10} y={charFeet[1] - 38} width="7" height="20" rx="3.5" fill="#FFD5C2" stroke="#3D3D3D" strokeWidth="0.8">
+                <animateTransform attributeName="transform" type="rotate" values={`-15 ${charFeet[0] + 14} ${charFeet[1] - 38};15 ${charFeet[0] + 14} ${charFeet[1] - 38};-15 ${charFeet[0] + 14} ${charFeet[1] - 38}`} dur="0.35s" repeatCount="indefinite" />
+              </rect>
+            </>
+          ) : status === 'focus' ? (
+            <>
+              <rect x={charFeet[0] - 18} y={charFeet[1] - 38} width="7" height="20" rx="3.5" fill="#FFD5C2" stroke="#3D3D3D" strokeWidth="0.8" transform={`rotate(15 ${charFeet[0] - 14} ${charFeet[1] - 38})`} />
+              <rect x={charFeet[0] + 11} y={charFeet[1] - 38} width="7" height="20" rx="3.5" fill="#FFD5C2" stroke="#3D3D3D" strokeWidth="0.8" transform={`rotate(-15 ${charFeet[0] + 14} ${charFeet[1] - 38})`} />
             </>
           ) : status === 'complete' ? (
             <>
-              <rect x={charFeet[0] - 19} y={charFeet[1] - 52} width="7" height="20" rx="3.5" fill="#FFD5C2" transform={`rotate(35 ${charFeet[0] - 16} ${charFeet[1] - 32})`} />
-              <rect x={charFeet[0] + 12} y={charFeet[1] - 52} width="7" height="20" rx="3.5" fill="#FFD5C2" transform={`rotate(-35 ${charFeet[0] + 16} ${charFeet[1] - 32})`} />
+              <rect x={charFeet[0] - 19} y={charFeet[1] - 52} width="7" height="20" rx="3.5" fill="#FFD5C2" stroke="#3D3D3D" strokeWidth="0.8" transform={`rotate(35 ${charFeet[0] - 16} ${charFeet[1] - 32})`} />
+              <rect x={charFeet[0] + 12} y={charFeet[1] - 52} width="7" height="20" rx="3.5" fill="#FFD5C2" stroke="#3D3D3D" strokeWidth="0.8" transform={`rotate(-35 ${charFeet[0] + 16} ${charFeet[1] - 32})`} />
             </>
           ) : (
             <>
-              <rect x={charFeet[0] - 17} y={charFeet[1] - 38} width="7" height="20" rx="3.5" fill="#FFD5C2" />
-              <rect x={charFeet[0] + 10} y={charFeet[1] - 38} width="7" height="20" rx="3.5" fill="#FFD5C2" />
+              <rect x={charFeet[0] - 17} y={charFeet[1] - 38} width="7" height="20" rx="3.5" fill="#FFD5C2" stroke="#3D3D3D" strokeWidth="0.8" />
+              <rect x={charFeet[0] + 10} y={charFeet[1] - 38} width="7" height="20" rx="3.5" fill="#FFD5C2" stroke="#3D3D3D" strokeWidth="0.8" />
             </>
           )}
 
           <g>
-            <ellipse cx={charFeet[0]} cy={charFeet[1] - 56} rx="14" ry="13" fill="#8B6F47" />
+            <ellipse cx={charFeet[0]} cy={charFeet[1] - 56} rx="14" ry="13" fill="#8B6F47" stroke="#3D3D3D" strokeWidth="1" />
             <ellipse cx={charFeet[0]} cy={charFeet[1] - 53} rx="13" ry="12" fill="#FFD5C2" />
             <ellipse cx={charFeet[0]} cy={charFeet[1] - 63} rx="13" ry="7" fill="#8B6F47" />
             <ellipse cx={charFeet[0] - 5} cy={charFeet[1] - 58} rx="4" ry="5" fill="#8B6F47" transform={`rotate(-8 ${charFeet[0] - 5} ${charFeet[1] - 58})`} />
