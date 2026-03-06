@@ -8,7 +8,7 @@ export default function Room3D() {
   return (
     <div className="room3d-canvas w-full h-full">
       <Canvas
-        frameloop="demand"
+        frameloop="always"
         gl={{ antialias: true, alpha: false }}
         dpr={[1, 1.5]}
         style={{ background: 'transparent' }}

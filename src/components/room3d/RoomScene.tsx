@@ -6,6 +6,7 @@ import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import RoomEnvironment from './RoomEnvironment';
 import Character3D from './Character3D';
 import { RoomItems } from './RoomItems';
+import { ZoneSystem } from './ZoneSystem';
 
 function getTimeOfDayLighting() {
   const h = new Date().getHours();
@@ -58,6 +59,9 @@ export default function RoomScene() {
 
       {/* Character */}
       <Character3D />
+
+      {/* Zone props & markers */}
+      <ZoneSystem />
 
       {/* Active items */}
       <RoomItems />

@@ -2,7 +2,7 @@
 
 import { memo } from 'react';
 import { useRoomStore } from '@/stores/roomStore';
-import { uvTo3D, isFloorItem3D, WALL_ITEMS } from './items';
+import { uvTo3D, WALL_ITEMS } from './items';
 import { PlaceholderItem } from './items/PlaceholderItem';
 import { PlantItem } from './items/PlantItems';
 import { FurnitureItem } from './items/FurnitureItems';
@@ -10,6 +10,7 @@ import { ElectronicsItem } from './items/ElectronicsItems';
 import { PetItem } from './items/PetItems';
 import { LightingItem } from './items/LightingItems';
 import { DecorItem } from './items/DecorItems';
+import DraggableItem from './DraggableItem';
 
 function getItemComponent(itemId: string) {
   if (itemId.startsWith('plant_')) return PlantItem;
@@ -63,7 +64,17 @@ export const RoomItems = memo(function RoomItems() {
         }
 
         const Component = getItemComponent(itemId);
-        return <Component key={itemId} itemId={itemId} position={position} />;
+        const isWall = WALL_ITEMS.has(itemId);
+
+        if (isWall) {
+          return <Component key={itemId} itemId={itemId} position={position} />;
+        }
+
+        return (
+          <DraggableItem key={itemId} itemId={itemId} position={position}>
+            <Component itemId={itemId} position={[0, 0, 0]} />
+          </DraggableItem>
+        );
       })}
     </group>
   );

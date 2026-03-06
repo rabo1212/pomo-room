@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { SHOP_ITEMS } from '@/lib/constants';
 import { useTimerStore } from '@/stores/timerStore';
 import { useRoomStore } from '@/stores/roomStore';
@@ -111,26 +112,30 @@ export default function ShopModal({ onClose }: ShopModalProps) {
   const categoryItems = SHOP_ITEMS.filter(i => i.category === selectedCategory);
 
   return (
-    <div className="modal-backdrop fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="modal-content clay bg-cream w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col p-6" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-50" onClick={onClose}>
+      <motion.div
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 100, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        className="game-panel w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col sm:mx-4"
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xl font-bold font-[family-name:var(--font-fredoka)] text-coral">
+        <div className="game-panel-header flex items-center justify-between">
+          <h2 className="text-lg font-bold font-[family-name:var(--font-fredoka)]">
             🛒 상점
           </h2>
           <div className="flex items-center gap-3">
-            <span className="text-sm font-bold text-gold-dark">🪙 {coins}</span>
-            <button
-              onClick={onClose}
-              className="clay-button w-8 h-8 flex items-center justify-center text-sm"
-            >
+            <span className="text-sm font-bold">🪙 {coins}</span>
+            <button onClick={onClose} className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-xs hover:bg-white/30 transition-colors">
               ✕
             </button>
           </div>
         </div>
 
         {/* Category Tabs */}
-        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3 scrollbar-hide">
+        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3 px-4 pt-3 scrollbar-hide">
           {CATEGORY_ORDER.map(cat => (
             <button
               key={cat}
@@ -147,7 +152,7 @@ export default function ShopModal({ onClose }: ShopModalProps) {
         </div>
 
         {/* Items Grid */}
-        <div className="overflow-y-auto flex-1">
+        <div className="overflow-y-auto flex-1 px-4">
           <div className="grid grid-cols-3 gap-2">
             {categoryItems.map(item => {
               const owned = ownedItemIds.includes(item.id);
@@ -229,16 +234,16 @@ export default function ShopModal({ onClose }: ShopModalProps) {
 
         {/* Debug */}
         {process.env.NODE_ENV === 'development' && (
-          <div className="mt-4 pt-3 border-t border-cream-dark">
+          <div className="mx-4 mb-4 pt-3 border-t border-white/10">
             <button
               onClick={() => useTimerStore.getState().addCoins(10)}
-              className="clay-button px-4 py-2 text-xs text-lavender-dark w-full"
+              className="w-full py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 transition-colors"
             >
               🧪 테스트용 코인 +10
             </button>
           </div>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { PublicRoomData, LeaderboardEntry } from '@/types';
 import { fetchPublicRooms, toggleRoomLike, fetchLeaderboard, updateRoomPublic } from '@/lib/supabase/social';
 import { useAuth } from '@/hooks/useAuth';
@@ -98,20 +99,24 @@ export default function SocialModal({ onClose }: SocialModalProps) {
 
   return (
     <div
-      className="modal-backdrop fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-50"
       onClick={onClose}
     >
-      <div
-        className="modal-content clay bg-cream w-full max-w-lg max-h-[85vh] flex flex-col"
+      <motion.div
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 100, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        className="game-panel w-full max-w-lg max-h-[85vh] flex flex-col sm:mx-4"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-4 pb-3 border-b border-cream-dark/20">
+        <div className="game-panel-header">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold font-[family-name:var(--font-fredoka)] text-coral">
+            <h2 className="text-lg font-bold font-[family-name:var(--font-fredoka)]">
               👥 소셜
             </h2>
-            <button onClick={onClose} className="text-lavender-dark/50 text-xl leading-none">
+            <button onClick={onClose} className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-xs hover:bg-white/30 transition-colors">
               ✕
             </button>
           </div>
@@ -292,7 +297,7 @@ export default function SocialModal({ onClose }: SocialModalProps) {
             </>
           )}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

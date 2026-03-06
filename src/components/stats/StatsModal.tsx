@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { useStatsStore } from '@/stores/statsStore';
 import { checkBadges } from '@/lib/badges';
 import ShareCard from '@/components/share/ShareCard';
@@ -186,23 +187,27 @@ export default function StatsModal({ onClose }: StatsModalProps) {
   const totalMins = total.minutes % 60;
 
   return (
-    <div className="modal-backdrop fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="modal-content clay bg-cream w-full max-w-md max-h-[80vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-50" onClick={onClose}>
+      <motion.div
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 100, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        className="game-panel w-full max-w-md max-h-[85vh] overflow-y-auto sm:mx-4"
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-bold font-[family-name:var(--font-fredoka)] text-coral">
+        <div className="game-panel-header flex items-center justify-between">
+          <h2 className="text-lg font-bold font-[family-name:var(--font-fredoka)]">
             📊 통계
           </h2>
-          <button
-            onClick={onClose}
-            className="clay-button w-8 h-8 flex items-center justify-center text-sm"
-          >
+          <button onClick={onClose} className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-xs hover:bg-white/30 transition-colors">
             ✕
           </button>
         </div>
 
         {/* 4-card grid */}
-        <div className="grid grid-cols-2 gap-3 mb-5">
+        <div className="grid grid-cols-2 gap-3 mb-5 px-4 pt-4">
           {/* 오늘 */}
           <div className="clay p-3 text-center">
             <div className="text-2xl mb-1">🍅</div>
@@ -288,16 +293,16 @@ export default function StatsModal({ onClose }: StatsModalProps) {
 
         {/* 테스트 버튼 (개발용) */}
         {process.env.NODE_ENV === 'development' && (
-          <div className="mt-4 pt-3 border-t border-cream-dark">
+          <div className="mx-4 mb-4 pt-3 border-t border-white/10">
             <button
               onClick={() => recordPomodoro(25)}
-              className="clay-button px-4 py-2 text-xs text-lavender-dark w-full"
+              className="w-full py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 transition-colors"
             >
               🧪 테스트용 뽀모도로 기록 +1
             </button>
           </div>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 }
