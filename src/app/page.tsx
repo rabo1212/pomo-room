@@ -1,17 +1,14 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import TimerDisplay from '@/components/timer/TimerDisplay';
-import TimerControls from '@/components/timer/TimerControls';
-import SessionIndicator from '@/components/timer/SessionIndicator';
-import CoinDisplay from '@/components/timer/CoinDisplay';
-import IsometricRoom from '@/components/room/IsometricRoom';
+import { useEffect, useState, useCallback, lazy, Suspense } from 'react';
+import { AnimatePresence } from 'framer-motion';
+import GameHUD from '@/components/hud/GameHUD';
+import GameActionBar from '@/components/hud/GameActionBar';
 import ShopModal from '@/components/shop/ShopModal';
 import StatsModal from '@/components/stats/StatsModal';
 import TimerSettings from '@/components/timer/TimerSettings';
 import LoginModal from '@/components/auth/LoginModal';
 import SocialModal from '@/components/social/SocialModal';
-import BottomNav from '@/components/layout/BottomNav';
 import Toast from '@/components/ui/Toast';
 import OnboardingGuide from '@/components/onboarding/OnboardingGuide';
 import { useTimer } from '@/hooks/useTimer';
@@ -21,21 +18,12 @@ import { useTimerStore } from '@/stores/timerStore';
 import { mergeLocalDataToCloud } from '@/lib/supabase/sync';
 import { showToast } from '@/components/ui/Toast';
 
-function LoadingSkeleton() {
+const Room3D = lazy(() => import('@/components/room3d/Room3D'));
+
+function RoomSkeleton() {
   return (
-    <div className="min-h-screen bg-cream flex flex-col items-center px-4 py-6">
-      <div className="w-full max-w-md flex items-center justify-between mb-4">
-        <div className="skeleton w-36 h-8" />
-        <div className="flex gap-2">
-          <div className="skeleton w-20 h-9 rounded-2xl" />
-          <div className="skeleton w-10 h-10 rounded-2xl" />
-        </div>
-      </div>
-      <div className="skeleton w-full max-w-md h-32 mb-4" />
-      <div className="skeleton w-full max-w-lg h-64 mb-6" />
-      <div className="flex gap-4 justify-center">
-        <div className="skeleton w-20 h-20 rounded-full" />
-      </div>
+    <div className="w-full h-full flex items-center justify-center bg-cream">
+      <div className="skeleton w-48 h-48 rounded-2xl" />
     </div>
   );
 }
@@ -47,28 +35,24 @@ export default function Home() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [socialOpen, setSocialOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'timer' | 'stats' | 'shop' | 'social'>('timer');
   const [synced, setSynced] = useState(false);
 
   const { user, loading: authLoading, signInWithGoogle, signOut } = useAuth();
 
   useTimer();
-  useDarkMode(); // 다크모드 초기화 (시스템 테마 감지)
+  useDarkMode();
 
   useEffect(() => {
     setMounted(true);
-    // 서비스 워커 등록 (PWA)
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
   }, []);
 
-  // 키보드 단축키
+  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // 모달이 열려있으면 무시 (ESC는 각 모달에서 처리)
       if (shopOpen || statsOpen || settingsOpen || loginOpen || socialOpen) return;
-      // input/textarea에서는 무시
       if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return;
 
       const { status, isRunning, start, pause, resume, skip, reset } = useTimerStore.getState();
@@ -88,27 +72,16 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handler);
   }, [shopOpen, statsOpen, settingsOpen, loginOpen, socialOpen]);
 
-  // 로그인 시 데이터 동기화
+  // Cloud sync on login
   useEffect(() => {
     if (user && !synced) {
       setSynced(true);
       mergeLocalDataToCloud(user.id).then(() => {
         showToast('클라우드 동기화 완료! ☁️');
-      }).catch(() => {
-        // 동기화 실패 시 로컬 데이터로 계속 사용
-      });
+      }).catch(() => {});
     }
-    if (!user) {
-      setSynced(false);
-    }
+    if (!user) setSynced(false);
   }, [user, synced]);
-
-  const handleTabChange = (tab: 'timer' | 'stats' | 'shop' | 'social') => {
-    setActiveTab(tab);
-    setStatsOpen(tab === 'stats');
-    setShopOpen(tab === 'shop');
-    setSocialOpen(tab === 'social');
-  };
 
   const handleLogin = useCallback(async () => {
     await signInWithGoogle();
@@ -121,119 +94,58 @@ export default function Home() {
   }, [signOut]);
 
   if (!mounted) {
-    return <LoadingSkeleton />;
+    return (
+      <div className="h-screen w-screen bg-cream flex items-center justify-center">
+        <div className="skeleton w-48 h-48 rounded-2xl" />
+      </div>
+    );
   }
 
   return (
-    <main className="min-h-screen bg-cream flex flex-col items-center px-3 sm:px-4 py-4 sm:py-6 pb-20 md:pb-6 relative">
-      {/* Header */}
-      <header className="w-full max-w-md flex items-center justify-between mb-3 sm:mb-4">
-        <h1 className="text-xl sm:text-2xl font-bold font-[family-name:var(--font-fredoka)] text-coral">
-          🍅 Pomo Room
-        </h1>
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <CoinDisplay />
-
-          {/* 프로필 / 로그인 버튼 */}
-          {!authLoading && (
-            user ? (
-              <button
-                onClick={() => setLoginOpen(true)}
-                className="clay-button w-10 h-10 flex items-center justify-center overflow-hidden rounded-full"
-                title={user.user_metadata?.full_name || '프로필'}
-                aria-label={user.user_metadata?.full_name || '프로필'}
-              >
-                {user.user_metadata?.avatar_url ? (
-                  <img
-                    src={user.user_metadata.avatar_url}
-                    alt=""
-                    className="w-full h-full object-cover rounded-full"
-                  />
-                ) : (
-                  <span className="text-sm">👤</span>
-                )}
-              </button>
-            ) : (
-              <button
-                onClick={() => setLoginOpen(true)}
-                className="clay-button w-10 h-10 flex items-center justify-center text-lg"
-                title="로그인"
-                aria-label="로그인"
-              >
-                👤
-              </button>
-            )
-          )}
-
-          <button
-            onClick={() => setSettingsOpen(true)}
-            className="clay-button w-10 h-10 flex items-center justify-center text-lg"
-            title="설정"
-            aria-label="설정"
-          >
-            ⚙️
-          </button>
-          <button
-            onClick={() => { setStatsOpen(true); setActiveTab('stats'); }}
-            className="clay-button w-10 h-10 hidden md:flex items-center justify-center text-lg"
-            title="통계"
-            aria-label="통계"
-          >
-            📊
-          </button>
-          <button
-            onClick={() => { setShopOpen(true); setActiveTab('shop'); }}
-            className="clay-button w-10 h-10 hidden md:flex items-center justify-center text-lg"
-            title="상점"
-            aria-label="상점"
-          >
-            🛒
-          </button>
-          <button
-            onClick={() => { setSocialOpen(true); setActiveTab('social'); }}
-            className="clay-button w-10 h-10 hidden md:flex items-center justify-center text-lg"
-            title="소셜"
-            aria-label="소셜"
-          >
-            👥
-          </button>
-        </div>
-      </header>
-
-      {/* Timer Display */}
-      <div className="clay p-4 sm:p-6 w-full max-w-md mb-3 sm:mb-4">
-        <TimerDisplay />
-        <div className="mt-2 sm:mt-3">
-          <SessionIndicator />
-        </div>
+    <main className="h-screen w-screen overflow-hidden relative bg-cream dark:bg-[#1E1E2E]">
+      {/* 3D Room fills entire screen */}
+      <div className="w-full h-full">
+        <Suspense fallback={<RoomSkeleton />}>
+          <Room3D />
+        </Suspense>
       </div>
 
-      {/* Isometric Room */}
-      <div className="room-container w-full max-w-lg flex justify-center mb-4 sm:mb-6" style={{ minHeight: 280 }}>
-        <IsometricRoom />
-      </div>
+      {/* Game HUD overlay */}
+      <GameHUD
+        onProfileClick={() => setLoginOpen(true)}
+        onSettingsClick={() => setSettingsOpen(true)}
+      />
 
-      {/* Timer Controls */}
-      <div className="w-full max-w-md">
-        <TimerControls />
-      </div>
-
-      {/* Bottom Navigation (mobile only) */}
-      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
+      {/* Bottom action bar */}
+      <GameActionBar
+        onStatsClick={() => setStatsOpen(true)}
+        onShopClick={() => setShopOpen(true)}
+        onSocialClick={() => setSocialOpen(true)}
+        onSettingsClick={() => setSettingsOpen(true)}
+      />
 
       {/* Modals */}
-      {shopOpen && <ShopModal onClose={() => { setShopOpen(false); setActiveTab('timer'); }} />}
-      {statsOpen && <StatsModal onClose={() => { setStatsOpen(false); setActiveTab('timer'); }} />}
-      {socialOpen && <SocialModal onClose={() => { setSocialOpen(false); setActiveTab('timer'); }} />}
+      <AnimatePresence>
+        {shopOpen && <ShopModal onClose={() => setShopOpen(false)} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {statsOpen && <StatsModal onClose={() => setStatsOpen(false)} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {socialOpen && <SocialModal onClose={() => setSocialOpen(false)} />}
+      </AnimatePresence>
       {settingsOpen && <TimerSettings onClose={() => setSettingsOpen(false)} />}
 
-      {/* Login Modal */}
+      {/* Login / Profile Modal */}
       {loginOpen && (
         user ? (
-          // 로그인 상태 → 프로필 모달
           <div className="modal-backdrop fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4" onClick={() => setLoginOpen(false)}>
-            <div className="modal-content clay bg-cream w-full max-w-xs p-6" onClick={(e) => e.stopPropagation()}>
-              <div className="text-center mb-4">
+            <div className="game-panel w-full max-w-xs" onClick={(e) => e.stopPropagation()}>
+              <div className="game-panel-header">
+                <span>프로필</span>
+                <button onClick={() => setLoginOpen(false)} className="text-white/80 hover:text-white">✕</button>
+              </div>
+              <div className="p-5 text-center">
                 {user.user_metadata?.avatar_url && (
                   <img
                     src={user.user_metadata.avatar_url}
@@ -246,19 +158,13 @@ export default function Home() {
                 </h3>
                 <p className="text-xs text-lavender-dark/60 mt-1">{user.email}</p>
                 <p className="text-xs text-mint-dark mt-2">☁️ 클라우드 동기화 활성</p>
+                <button
+                  onClick={handleLogout}
+                  className="clay-button w-full py-2.5 text-sm text-lavender-dark mt-4"
+                >
+                  로그아웃
+                </button>
               </div>
-              <button
-                onClick={handleLogout}
-                className="clay-button w-full py-2.5 text-sm text-lavender-dark"
-              >
-                로그아웃
-              </button>
-              <button
-                onClick={() => setLoginOpen(false)}
-                className="w-full text-center text-xs text-lavender-dark/50 mt-3 py-2"
-              >
-                닫기
-              </button>
             </div>
           </div>
         ) : (
@@ -266,10 +172,7 @@ export default function Home() {
         )
       )}
 
-      {/* Toast */}
       <Toast />
-
-      {/* 온보딩 가이드 (첫 방문 시) */}
       <OnboardingGuide />
     </main>
   );

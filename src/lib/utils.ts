@@ -25,6 +25,31 @@ export function getTimeOfDay(): 'morning' | 'afternoon' | 'evening' | 'night' {
   return 'night';
 }
 
+// Level system
+const XP_PER_LEVEL = 5;
+const LEVEL_TITLES = ['Newbie', 'Starter', 'Focused', 'Pro', 'Master', 'Legend'];
+
+export interface PlayerLevel {
+  level: number;
+  currentXP: number;
+  requiredXP: number;
+  title: string;
+  progress: number; // 0~1
+}
+
+export function getPlayerLevel(totalPomodoros: number): PlayerLevel {
+  const level = Math.floor(totalPomodoros / XP_PER_LEVEL) + 1;
+  const currentXP = totalPomodoros % XP_PER_LEVEL;
+  const title = LEVEL_TITLES[Math.min(level - 1, LEVEL_TITLES.length - 1)];
+  return {
+    level,
+    currentXP,
+    requiredXP: XP_PER_LEVEL,
+    title,
+    progress: currentXP / XP_PER_LEVEL,
+  };
+}
+
 export function getWindowColors(timeOfDay: ReturnType<typeof getTimeOfDay>) {
   switch (timeOfDay) {
     case 'morning':
