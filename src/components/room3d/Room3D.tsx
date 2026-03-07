@@ -9,8 +9,9 @@ export default function Room3D() {
     <div className="room3d-canvas w-full h-full">
       <Canvas
         frameloop="always"
-        gl={{ antialias: true, alpha: false }}
+        gl={{ antialias: true, alpha: false, powerPreference: 'low-power' }}
         dpr={[1, 1.5]}
+        performance={{ min: 0.5 }}
       >
         <Suspense fallback={null}>
           <RoomScene />

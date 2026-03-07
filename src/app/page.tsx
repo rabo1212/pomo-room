@@ -44,8 +44,14 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
+    // SW 등록을 idle 시점으로 지연 — 초기 로드 메인 스레드 부담 감소
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
+      const register = () => navigator.serviceWorker.register('/sw.js').catch(() => {});
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(register);
+      } else {
+        setTimeout(register, 3000);
+      }
     }
   }, []);
 
