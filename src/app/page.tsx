@@ -104,7 +104,7 @@ export default function Home() {
   return (
     <main className="h-screen w-screen overflow-hidden relative bg-cream dark:bg-[#1E1E2E]">
       {/* 3D Room fills entire screen */}
-      <div className="w-full h-full">
+      <div className="absolute inset-0">
         <Suspense fallback={<RoomSkeleton />}>
           <Room3D />
         </Suspense>

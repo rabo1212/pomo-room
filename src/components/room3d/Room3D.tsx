@@ -11,7 +11,6 @@ export default function Room3D() {
         frameloop="always"
         gl={{ antialias: true, alpha: false }}
         dpr={[1, 1.5]}
-        style={{ background: 'transparent' }}
       >
         <Suspense fallback={null}>
           <RoomScene />

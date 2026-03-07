@@ -21,6 +21,8 @@ export default function RoomScene() {
 
   return (
     <>
+      <color attach="background" args={['#FFF5E8']} />
+
       {/* Camera: isometric view */}
       <OrthographicCamera
         makeDefault

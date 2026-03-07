@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useTimerStore } from '@/stores/timerStore';
 import { useStatsStore } from '@/stores/statsStore';
 import { useAuth } from '@/hooks/useAuth';
@@ -13,7 +14,14 @@ interface TopBarProps {
 export default function TopBar({ onProfileClick, onSettingsClick }: TopBarProps) {
   const coins = useTimerStore((s) => s.coins);
   const { user } = useAuth();
-  const totalStats = useStatsStore((s) => s.getTotalStats());
+  const dailyRecords = useStatsStore((s) => s.dailyRecords);
+  const totalStats = useMemo(() => {
+    const entries = Object.values(dailyRecords);
+    return {
+      count: entries.reduce((sum, r) => sum + r.count, 0),
+      minutes: entries.reduce((sum, r) => sum + r.minutes, 0),
+    };
+  }, [dailyRecords]);
   const streak = useStatsStore((s) => s.getStreak());
   const level = getPlayerLevel(totalStats.count);
 
