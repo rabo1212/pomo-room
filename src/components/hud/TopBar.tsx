@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useTimerStore } from '@/stores/timerStore';
 import { useStatsStore } from '@/stores/statsStore';
 import { useAuth } from '@/hooks/useAuth';
-import { getPlayerLevel } from '@/lib/utils';
+import { getPlayerLevel, getConsistencyRatio } from '@/lib/utils';
 
 interface TopBarProps {
   onProfileClick: () => void;
@@ -23,6 +23,7 @@ export default function TopBar({ onProfileClick, onSettingsClick }: TopBarProps)
     };
   }, [dailyRecords]);
   const streak = useStatsStore((s) => s.getStreak());
+  const consistency = useMemo(() => getConsistencyRatio(dailyRecords), [dailyRecords]);
   const level = getPlayerLevel(totalStats.count);
 
   return (
@@ -47,6 +48,14 @@ export default function TopBar({ onProfileClick, onSettingsClick }: TopBarProps)
 
       {/* Right: Coins + Streak + Profile + Settings */}
       <div className="flex items-center gap-1.5">
+        {/* Consistency ratio */}
+        {consistency.activeDays > 0 && (
+          <div className="game-hud-pill flex items-center gap-1" title={consistency.message}>
+            <span className="text-xs">🎯</span>
+            <span>{Math.round(consistency.ratio * 100)}%</span>
+          </div>
+        )}
+
         {/* Streak */}
         {streak > 0 && (
           <div className="game-hud-pill flex items-center gap-1">

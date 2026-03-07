@@ -50,6 +50,38 @@ export function getPlayerLevel(totalPomodoros: number): PlayerLevel {
   };
 }
 
+// Consistency ratio: active days out of last N days
+export interface ConsistencyInfo {
+  ratio: number;       // 0~1
+  activeDays: number;
+  totalDays: number;
+  message: string;
+}
+
+export function getConsistencyRatio(
+  dailyRecords: Record<string, { count: number; minutes: number }>,
+  days = 30
+): ConsistencyInfo {
+  let activeDays = 0;
+  const d = new Date();
+  for (let i = 0; i < days; i++) {
+    const key = localDateKey(d);
+    if (dailyRecords[key]?.count > 0) activeDays++;
+    d.setDate(d.getDate() - 1);
+  }
+  const ratio = days > 0 ? activeDays / days : 0;
+
+  let message: string;
+  if (ratio >= 0.9) message = '거의 매일! 대단해요!';
+  else if (ratio >= 0.7) message = '꾸준히 잘하고 있어요!';
+  else if (ratio >= 0.5) message = '절반 이상! 좋은 페이스예요';
+  else if (ratio >= 0.3) message = '조금씩 늘려가봐요!';
+  else if (activeDays > 0) message = '다시 시작한 것만으로도 멋져요!';
+  else message = '오늘 첫 걸음을 떼어봐요!';
+
+  return { ratio, activeDays, totalDays: days, message };
+}
+
 export function getWindowColors(timeOfDay: ReturnType<typeof getTimeOfDay>) {
   switch (timeOfDay) {
     case 'morning':

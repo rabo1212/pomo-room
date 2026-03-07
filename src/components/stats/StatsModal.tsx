@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { useStatsStore } from '@/stores/statsStore';
 import { checkBadges } from '@/lib/badges';
 import ShareCard from '@/components/share/ShareCard';
-import { localDateKey } from '@/lib/utils';
+import { localDateKey, getConsistencyRatio } from '@/lib/utils';
 
 interface StatsModalProps {
   onClose: () => void;
@@ -182,6 +182,8 @@ export default function StatsModal({ onClose }: StatsModalProps) {
     };
   }, [dailyRecords]);
 
+  const consistency = useMemo(() => getConsistencyRatio(dailyRecords), [dailyRecords]);
+
   const weeklyTotal = weekly.reduce((sum, d) => sum + d.count, 0);
   const totalHours = Math.floor(total.minutes / 60);
   const totalMins = total.minutes % 60;
@@ -232,15 +234,15 @@ export default function StatsModal({ onClose }: StatsModalProps) {
             </div>
           </div>
 
-          {/* 스트릭 */}
+          {/* 꾸준함 */}
           <div className="clay p-3 text-center">
-            <div className="text-2xl mb-1">🔥</div>
+            <div className="text-2xl mb-1">🎯</div>
             <div className="text-2xl font-bold font-[family-name:var(--font-fredoka)] text-gold-dark">
-              {streak}
+              {Math.round(consistency.ratio * 100)}%
             </div>
-            <div className="text-[10px] text-lavender-dark">연속 일수</div>
+            <div className="text-[10px] text-lavender-dark">30일 꾸준함</div>
             <div className="text-[9px] text-lavender-dark/60 mt-0.5">
-              {streak > 0 ? '계속 가자!' : '오늘 시작해봐!'}
+              {consistency.activeDays}일/{consistency.totalDays}일
             </div>
           </div>
 
@@ -274,6 +276,35 @@ export default function StatsModal({ onClose }: StatsModalProps) {
             <WeeklyChart data={weekly} />
           </div>
         )}
+
+        {/* 꾸준함 & 스트릭 */}
+        <div className="clay p-4 mt-3 mx-4">
+          <h3 className="text-sm font-bold text-lavender-dark mb-3">🎯 꾸준함 리포트</h3>
+          {/* Consistency bar */}
+          <div className="w-full h-3 rounded-full bg-white/10 overflow-hidden mb-2">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-mint to-gold transition-all duration-700"
+              style={{ width: `${Math.round(consistency.ratio * 100)}%` }}
+            />
+          </div>
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-xs text-lavender-dark/70">
+              최근 30일 중 <strong className="text-mint-dark">{consistency.activeDays}일</strong> 집중
+            </span>
+            <span className="text-xs font-bold text-gold-dark">
+              {Math.round(consistency.ratio * 100)}%
+            </span>
+          </div>
+          <p className="text-xs text-center text-lavender-dark bg-white/5 rounded-xl py-2 px-3">
+            {consistency.message}
+          </p>
+          {streak > 0 && (
+            <div className="flex items-center justify-center gap-1.5 mt-2 text-xs text-lavender-dark/70">
+              <span>🔥</span>
+              <span>현재 {streak}일 연속 진행 중!</span>
+            </div>
+          )}
+        </div>
 
         {/* 공유 카드 버튼 */}
         {today.count > 0 && (
