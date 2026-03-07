@@ -40,7 +40,7 @@ export default memo(function RoomEnvironment() {
       </mesh>
 
       {/* Floor grid lines */}
-      <gridHelper args={[ROOM_SIZE, 8, '#00000015', '#00000008']} position={[0, 0.005, 0]} />
+      <gridHelper args={[ROOM_SIZE, 8, '#d4d4d4', '#e8e8e8']} position={[0, 0.005, 0]} />
 
       {/* Left wall */}
       <mesh position={[-HALF, WALL_HEIGHT / 2, 0]}>
