@@ -25,10 +25,6 @@ export default function GameActionBar({ onStatsClick, onShopClick, onSocialClick
   const { requestPermission, notify } = useNotification();
   const prevStatusRef = useRef(status);
 
-  useEffect(() => {
-    requestPermission();
-  }, [requestPermission]);
-
   // Sound + notification on status change (absorbed from TimerControls)
   useEffect(() => {
     const prev = prevStatusRef.current;
@@ -49,6 +45,7 @@ export default function GameActionBar({ onStatsClick, onShopClick, onSocialClick
 
   const handleMainButton = () => {
     if (status === 'idle') {
+      requestPermission();
       playStart();
       start();
     } else if (isRunning) {
