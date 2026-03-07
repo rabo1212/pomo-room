@@ -21,11 +21,11 @@ export default function RoomScene() {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   const camRef = useRef<THREE.OrthographicCamera>(null);
   const zoom = useMemo(() => {
-    if (typeof window === 'undefined') return 40;
+    if (typeof window === 'undefined') return 55;
     const w = window.innerWidth;
-    if (w < 480) return 28;
-    if (w < 768) return 34;
-    return 40;
+    if (w < 480) return 35;
+    if (w < 768) return 45;
+    return 55;
   }, []);
 
   useEffect(() => {
