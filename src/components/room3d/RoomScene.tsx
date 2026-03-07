@@ -18,6 +18,13 @@ function getTimeOfDayLighting() {
 export default function RoomScene() {
   const sunlight = useMemo(getTimeOfDayLighting, []);
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const zoom = useMemo(() => {
+    if (typeof window === 'undefined') return 40;
+    const w = window.innerWidth;
+    if (w < 480) return 28;
+    if (w < 768) return 34;
+    return 40;
+  }, []);
 
   return (
     <>
@@ -26,7 +33,7 @@ export default function RoomScene() {
       {/* Camera: isometric view */}
       <OrthographicCamera
         makeDefault
-        zoom={55}
+        zoom={zoom}
         position={[10, 10, 10]}
         near={0.1}
         far={100}
