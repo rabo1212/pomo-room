@@ -1,12 +1,39 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { OrthographicCamera, ContactShadows } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { useThree } from '@react-three/fiber';
+import * as THREE from 'three';
 import RoomEnvironment from './RoomEnvironment';
 import Character3D from './Character3D';
 import { RoomItems } from './RoomItems';
 import { ZoneSystem } from './ZoneSystem';
+
+function IsometricCamera({ zoom }: { zoom: number }) {
+  const cameraRef = useRef<THREE.OrthographicCamera>(null);
+  const set = useThree((state) => state.set);
+
+  useEffect(() => {
+    const cam = cameraRef.current;
+    if (cam) {
+      cam.position.set(10, 10, 10);
+      cam.lookAt(0, 0, 0);
+      cam.updateProjectionMatrix();
+      set({ camera: cam });
+    }
+  }, [set]);
+
+  useEffect(() => {
+    const cam = cameraRef.current;
+    if (cam) {
+      cam.zoom = zoom;
+      cam.updateProjectionMatrix();
+    }
+  }, [zoom]);
+
+  return <orthographicCamera ref={cameraRef} near={0.1} far={100} />;
+}
 
 function getTimeOfDayLighting() {
   const h = new Date().getHours();
@@ -30,14 +57,8 @@ export default function RoomScene() {
     <>
       <color attach="background" args={['#FFF5E8']} />
 
-      {/* Camera: isometric view */}
-      <OrthographicCamera
-        makeDefault
-        zoom={zoom}
-        position={[10, 10, 10]}
-        near={0.1}
-        far={100}
-      />
+      {/* Camera: isometric view looking at room center */}
+      <IsometricCamera zoom={zoom} />
 
       {/* Lighting */}
       <ambientLight intensity={0.6} color="#FFF5E8" />
